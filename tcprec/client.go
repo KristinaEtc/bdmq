@@ -72,10 +72,18 @@ func Dial(network, addr string) (net.Conn, error) {
 //
 // This overrides net.TCPConn's DialTCP function.
 func DialTCP(network string, laddr, raddr *net.TCPAddr) (*TCPClient, error) {
-	conn, err := net.DialTCP(network, laddr, raddr)
-	if err != nil {
-		log.Error(err.Error())
-		return nil, err
+
+	var conn *net.TCPConn
+	var err error
+	for {
+		conn, err = net.DialTCP(network, laddr, raddr)
+		if err != nil {
+			log.Warnf("Connecting to %s: %s", raddr.IP, err.Error())
+			time.Sleep(time.Second)
+			continue
+		} else {
+			break
+		}
 	}
 
 	return &TCPClient{

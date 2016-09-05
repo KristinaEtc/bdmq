@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/KristinaEtc/bdmq/tcprec"
-	"github.com/KristinaEtc/config"
+	//"github.com/KristinaEtc/config"
 
 	"github.com/ventu-io/slf"
 )
@@ -28,7 +28,7 @@ var globalOpt = Global{
 
 func main() {
 
-	config.ReadGlobalConfig(&globalOpt, "client-example")
+	//config.ReadGlobalConfig(&globalOpt, "client-example")
 
 	// connect to a TCP server
 	conn, err := tcprec.Dial("tcp", globalOpt.Addr)
