@@ -37,18 +37,26 @@ func main() {
 		return
 	}
 
+	buf := make([]byte, 256)
 	// client sends "hello, world!" to the server every second
 	for {
-		_, err := conn.Write([]byte("hello, world!\n"))
+		/*	_, err := conn.Write([]byte("hello, world!\n"))
+			if err != nil {
+				// if the client reached its retry limit, give up
+				if err == tcprec.ErrMaxRetries {
+					log.Warn("client gave up, reached retry limit")
+					return
+				}
+
+				// not a tcprec error, just panic
+				log.Error(err.Error())
+			}*/
+
+		_, err = conn.Read(buf)
 		if err != nil {
-			// if the client reached its retry limit, give up
-			if err == tcprec.ErrMaxRetries {
-				log.Warn("client gave up, reached retry limit")
-				return
-			}
-			// not a tcprec error, just panic
 			log.Error(err.Error())
 		}
+
 		log.Info("client says hello!")
 		time.Sleep(time.Second)
 	}

@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"net"
+	"os"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -163,17 +164,8 @@ func (c *TCPClient) reconnect() error {
 	raddr := c.TCPConn.RemoteAddr()
 	conn, err := net.DialTCP(raddr.Network(), nil, raddr.(*net.TCPAddr))
 	if err != nil {
-		// reset shared status to offline
 		defer atomic.StoreInt32(&c.status, statusOffline)
-		switch e := err.(type) {
-		case *net.OpError:
-			if e.Err.(syscall.Errno) == syscall.ECONNREFUSED {
-				return nil
-			}
-			return err
-		default:
-			return err
-		}
+		return err
 	}
 
 	// set new TCP socket
@@ -202,9 +194,10 @@ func (c *TCPClient) Read(b []byte) (int, error) {
 			if err == nil {
 				return n, err
 			}
+
 			switch e := err.(type) {
 			case *net.OpError:
-				if e.Err.(syscall.Errno) == syscall.ECONNRESET ||
+				if e.Err.(*os.SyscallError) == os.ErrInvalid ||
 					e.Err.(syscall.Errno) == syscall.EPIPE {
 					atomic.StoreInt32(&c.status, statusOffline)
 				} else {
@@ -290,17 +283,8 @@ func (c *TCPClient) Write(b []byte) (int, error) {
 			if err == nil {
 				return n, err
 			}
-			switch e := err.(type) {
-			case *net.OpError:
-				if e.Err.(syscall.Errno) == syscall.ECONNRESET ||
-					e.Err.(syscall.Errno) == syscall.EPIPE {
-					atomic.StoreInt32(&c.status, statusOffline)
-				} else {
-					return n, err
-				}
-			default:
-				return n, err
-			}
+			atomic.StoreInt32(&c.status, statusOffline)
+
 		} else if atomic.LoadInt32(&c.status) == statusOffline {
 			if err := c.reconnect(); err != nil {
 				return -1, err
