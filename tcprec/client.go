@@ -13,7 +13,11 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/ventu-io/slf"
 )
+
+var log = slf.WithContext("client.go")
 
 // ----------------------------------------------------------------------------
 
@@ -53,6 +57,7 @@ type TCPClient struct {
 func Dial(network, addr string) (net.Conn, error) {
 	raddr, err := net.ResolveTCPAddr(network, addr)
 	if err != nil {
+		log.Error(err.Error())
 		return nil, err
 	}
 
@@ -69,6 +74,7 @@ func Dial(network, addr string) (net.Conn, error) {
 func DialTCP(network string, laddr, raddr *net.TCPAddr) (*TCPClient, error) {
 	conn, err := net.DialTCP(network, laddr, raddr)
 	if err != nil {
+		log.Error(err.Error())
 		return nil, err
 	}
 
