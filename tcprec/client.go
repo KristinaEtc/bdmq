@@ -31,48 +31,143 @@ const (
 
 // ----------------------------------------------------------------------------
 
-// TCPClient provides a TCP connection with auto-reconnect capabilities.
+// Link is a struct with conn options for creating a node
+type LinkOpts struct {
+	ID       string
+	Address  string
+	Mode     string
+	Internal int
+}
+
+// TCPConn provides a TCP connection with auto-reconnect capabilities.
 //
 // It embeds a *net.TCPConn and thus implements the net.Conn interface.
 //
 // Use the SetMaxRetries() and SetRetryInterval() methods to configure retry
 // values; otherwise they default to maxRetries=5 and retryInterval=100ms.
 //
-// TCPClient can be safely used from multiple goroutines.
-type TCPClient struct {
-	*net.TCPConn
-
-	lock   sync.RWMutex
-	status int32
-
+// TCPConn can be safely used from multiple goroutines.
+type TCPConn struct {
+	conn          *net.TCPConn
+	lock          sync.RWMutex
+	status        int32
 	maxRetries    int
 	retryInterval time.Duration
+	Link          LinkOpts
 }
 
-// Dial returns a new net.Conn.
+var conns map[string]TCPConn
+
+//Init reads links and creates nodes with their options
+func Init(links []LinkOpts) {
+	if links == nil && len(links) == 0 {
+		log.Error("Could not init connections: empty link's slice.")
+		return
+	}
+
+	conns = make(map[string]TCPConn)
+
+	for _, link := range links {
+		if link.Mode == "client" {
+			initClientNode(link)
+		}
+		if link.Mode == "server" {
+			initServerNode(link)
+		}
+
+	}
+	//conns[link.ID] =
+	//	}
+}
+
+func initClientNode(link LinkOpts) {
+	if linkExists(link.ID) {
+		log.Warn("Node with such name is exist yet; ignore")
+	}
+	conns[link.ID] = TCPConn{
+		Link: link,
+	}
+
+	ConnectClient("tcp", link.Address, link)
+
+}
+
+func initServerNode(link LinkOpts) {
+	if linkExists(link.ID) {
+		log.Warn("Node with such name is exist yet; ignore")
+	}
+	conns[link.ID] = TCPConn{
+		Link: link,
+	}
+	//conn[link.ID] = TCPConn{}
+}
+
+func linkExists(linkName string) bool {
+	for name := range conns {
+		if name == linkName {
+			return true
+		}
+	}
+	return false
+}
+
+// ConnectClient returns a new net.Conn.
 //
 // The new client connects to the remote address `raddr` on the network `network`,
 // which must be "tcp", "tcp4", or "tcp6".
 //
 // This complements net package's Dial function.
-func Dial(network, addr string) (net.Conn, error) {
+func ConnectClient(network, addr string, links ...LinkOpts) (*TCPConn, error) {
+	if links == nil{
 	raddr, err := net.ResolveTCPAddr(network, addr)
 	if err != nil {
 		log.Error(err.Error())
+	}
+	}else{
+		for _, link := range links{
+			raddr, err := net.ResolveTCPAddr(network, link.Address)
+		}
+	}
+
+		if  link == nil{
+return DialTCP(network, nil, raddr)
+		}else if len(conns) != 0{
+			delete conns[link.ID]
+		}	
+
+		if 
+
+		for _, link := range links{
+			raddr, err := net.ResolveTCPAddr(network, addr)
+		}
+		return nil, err
+	}
+}
+
+// ConnectServer creates a working server node
+func ConnectServer() (net.Conn, error) {
+	// listen on all interfaces
+	ln, err := net.Listen("tcp", ":8081")
+	if err != nil {
 		return nil, err
 	}
 
-	return DialTCP(network, nil, raddr)
+	// accept connection on port
+	conn, err := ln.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
-// DialTCP returns a new *TCPClient.
+// DialTCP returns a new *TCPConn.
 //
 // The new client connects to the remote address `raddr` on the network `network`,
 // which must be "tcp", "tcp4", or "tcp6".
 // If `laddr` is not nil, it is used as the local address for the connection.
 //
 // This overrides net.TCPConn's DialTCP function.
-func DialTCP(network string, laddr, raddr *net.TCPAddr) (*TCPClient, error) {
+func DialTCP(network string, laddr, raddr *net.TCPAddr) (*TCPConn, error) {
 
 	var conn *net.TCPConn
 	var err error
@@ -87,7 +182,7 @@ func DialTCP(network string, laddr, raddr *net.TCPAddr) (*TCPClient, error) {
 		}
 	}
 
-	return &TCPClient{
+	return &TCPConn{
 		TCPConn: conn,
 
 		lock:   sync.RWMutex{},
@@ -106,7 +201,7 @@ func DialTCP(network string, laddr, raddr *net.TCPAddr) (*TCPClient, error) {
 // t = retryInterval * (2^i)
 //
 // This function completely Lock()s the TCPClient.
-func (c *TCPClient) SetMaxRetries(maxRetries int) {
+func (c *TCPConn) SetMaxRetries(maxRetries int) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -117,7 +212,7 @@ func (c *TCPClient) SetMaxRetries(maxRetries int) {
 //
 // Assuming i is the current retry iteration, the total sleep time is
 // t = retryInterval * (2^i)
-func (c *TCPClient) GetMaxRetries() int {
+func (c *TCPConn) GetMaxRetries() int {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -130,7 +225,7 @@ func (c *TCPClient) GetMaxRetries() int {
 // t = retryInterval * (2^i)
 //
 // This function completely Lock()s the TCPClient.
-func (c *TCPClient) SetRetryInterval(retryInterval time.Duration) {
+func (c *TCPConn) SetRetryInterval(retryInterval time.Duration) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -141,7 +236,7 @@ func (c *TCPClient) SetRetryInterval(retryInterval time.Duration) {
 //
 // Assuming i is the current retry iteration, the total sleep time is
 // t = retryInterval * (2^i)
-func (c *TCPClient) GetRetryInterval() time.Duration {
+func (c *TCPConn) GetRetryInterval() time.Duration {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -153,7 +248,7 @@ func (c *TCPClient) GetRetryInterval() time.Duration {
 // reconnect builds a new TCP connection to replace the embedded *net.TCPConn.
 //
 // TODO: keep old socket configuration (timeout, linger...).
-func (c *TCPClient) reconnect() error {
+func (c *TCPConn) reconnect() error {
 	// set the shared status to 'reconnecting'
 	// if it's already the case, return early, something's already trying to
 	// reconnect
@@ -183,10 +278,12 @@ func (c *TCPClient) reconnect() error {
 // Read wraps net.TCPConn's Read method with reconnect capabilities.
 //
 // It will return ErrMaxRetries if the retry limit is reached.
-func (c *TCPClient) Read(b []byte) (int, error) {
+func (c *TCPConn) Read(b []byte) (int, error) {
 	// protect conf values (retryInterval, maxRetries...)
 	c.lock.RLock()
 	defer c.lock.RUnlock()
+
+	//log.Debug("c *TCPClient Read()")
 
 	for i := 0; i < c.maxRetries; i++ {
 		if atomic.LoadInt32(&c.status) == statusOnline {
@@ -228,7 +325,7 @@ func (c *TCPClient) Read(b []byte) (int, error) {
 // ReadFrom wraps net.TCPConn's ReadFrom method with reconnect capabilities.
 //
 // It will return ErrMaxRetries if the retry limit is reached.
-func (c *TCPClient) ReadFrom(r io.Reader) (int64, error) {
+func (c *TCPConn) ReadFrom(r io.Reader) (int64, error) {
 	// protect conf values (retryInterval, maxRetries...)
 	c.lock.RLock()
 	defer c.lock.RUnlock()
@@ -272,7 +369,7 @@ func (c *TCPClient) ReadFrom(r io.Reader) (int64, error) {
 // Write wraps net.TCPConn's Write method with reconnect capabilities.
 //
 // It will return ErrMaxRetries if the retry limit is reached.
-func (c *TCPClient) Write(b []byte) (int, error) {
+func (c *TCPConn) Write(b []byte) (int, error) {
 	// protect conf values (retryInterval, maxRetries...)
 	c.lock.RLock()
 	defer c.lock.RUnlock()
