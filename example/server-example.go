@@ -1,72 +1,116 @@
 package main
 
 // do not move
+import _ "github.com/KristinaEtc/slflog"
+
 import (
-	"net"
-	"strings"
 	"time"
 
-	_ "github.com/KristinaEtc/slflog"
+	"github.com/KristinaEtc/bdmq/tcprec"
+	"github.com/KristinaEtc/config"
 	"github.com/ventu-io/slf"
 )
 
-var log = slf.WithContext("server.go")
+var log = slf.WithContext("server-main.go")
+
+//Server is a struct for config
+type Global struct {
+	Addr  string
+	Links []tcprec.LinkOpts
+	//CallerInfo bool
+}
+
+/*type Link struct{
+	ID string
+	Address string
+	Mode string
+	Internal int
+}*/
+
+var globalOpt = Global{
+	Links: []tcprec.LinkOpts{
+		tcprec.LinkOpts{
+			ID:         "server1",
+			Address:    "localhost:1234",
+			Mode:       "server",
+			Internal:   5,
+			MaxRetries: 10,
+		},
+		tcprec.LinkOpts{
+			ID:         "server2",
+			Address:    "localhost:7777",
+			Mode:       "SERVER",
+			Internal:   2,
+			MaxRetries: 7,
+		},
+	},
+}
 
 func main() {
 
 	log.Info("Launching server...")
 
 	// listen on all interfaces
-	ln, err := net.Listen("tcp", ":7777")
+	config.ReadGlobalConfig(&globalOpt, "server-example")
+	log.Infof("server: %v\n", globalOpt)
+	conns, err := tcprec.Init(globalOpt.Links)
 	if err != nil {
 		log.Error(err.Error())
-		return
 	}
-	// accept connection on port
-	conn, err := ln.Accept()
-	if err != nil {
-		log.Error(err.Error())
-		return
-	} else {
-		log.Info("accepted")
-	}
+
+	conn := conns["server1"]
 
 	var buf = make([]byte, 256)
 
-	// run loop forever (or until ctrl-c)
-	for {
-		// will listen for message to process ending in newline (\n)
-		/*reader := bufio.NewReader(conn)
-		/*	if err != nil {
+	for i := 0; i < 10; i++ {
+
+		_, err := conn.Read(buf)
+		if err != nil {
 			log.Error(err.Error())
-			return
+			if err == tcprec.ErrMaxRetries {
+				log.Warn("sever gave up, reached retry limit")
+				return
+			}
 		}
-
-		_, err = reader.Read(buf)
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}*/
-
-		conn.Read(buf)
-		// output message received
-		log.Infof("Message Received: %s\n", string(buf))
-		// sample process for string received
-		newmessage := strings.ToUpper(string(buf))
-		// send new string back to client
-		conn.Write([]byte(newmessage + "\n"))
-
-		time.Sleep(time.Second * 1)
-
-		//conn.Write([]byte(strconv.Itoa(i) + "yo\n"))
-		/*writer := bufio.NewWriter(conn)
-		_, err := writer.WriteString(strconv.Itoa(i) + "yo\n")
-		if err != nil {
-			log.Error(err.Error())
-			return
-		}*/
-		//time.Sleep(time.Second)
+		time.Sleep(time.Second)
+		log.Infof("Msg %s\n", string(buf))
 	}
+
+	// run loop forever (or until ctrl-c)
+	/*for {
+	// will listen for message to process ending in newline (\n)
+	reader := bufio.NewReader(conn)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	_, err = reader.Read(buf)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	//	conn.Read(buf)
+	// output message received
+	log.Infof("Message Received: %s\n", string(buf))
+
+	// sample process for string received
+	//newmessage := strings.ToUpper(string(buf))
+	// send new string back to client
+	//conn.Write([]byte(newmessage + "\n"))
+
+	time.Sleep(time.Second * 1)
+
+	//conn.Write([]byte(strconv.Itoa(i) + "yo\n"))
+	/*writer := bufio.NewWriter(conn)
+	_, err := writer.WriteString(strconv.Itoa(i) + "yo\n")
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}*/
+	//time.Sleep(time.Second)
+	//}
 }
 
 /*
