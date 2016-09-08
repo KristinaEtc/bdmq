@@ -3,8 +3,7 @@ package main
 // do not move
 import _ "github.com/KristinaEtc/slflog"
 import (
-	"strconv"
-	"time"
+	"fmt"
 
 	"github.com/KristinaEtc/bdmq/tcprec"
 	"github.com/KristinaEtc/config"
@@ -62,18 +61,31 @@ func main() {
 		log.Error(err.Error())
 	}
 
-	conn := conns["user1"]
+	//conn := conns["user1"]
 
-	for i := 0; i < 10; i++ {
-		_, err := conn.Write([]byte(strconv.Itoa(i)))
-		if err != nil {
-			log.Error(err.Error())
+	var serverID, msg string
+	for {
+		fmt.Print("node ID> ")
+		//fmt.Scanf("node ID> %s\n", &serverID)
+		fmt.Scanln(&serverID)
+		fmt.Println(serverID)
+		fmt.Print("message> ")
+		fmt.Scanln(&msg)
+		if msg == "/q" {
+			fmt.Println("goodbye")
+			break
+		}
+
+		if tcprec.LinkExists(serverID) {
+			_, err := conns[serverID].Write([]byte(msg))
 			if err == tcprec.ErrMaxRetries {
 				log.Warn("client gave up, reached retry limit")
-				return
+				continue
 			}
+		} else {
+			fmt.Printf("No such id (%s); try again or go away(/q)\n", serverID)
 		}
-		time.Sleep(time.Second)
+
 		/*result, err := ioutil.ReadAll(conn)
 		if err != nil {
 			log.Error(err.Error())

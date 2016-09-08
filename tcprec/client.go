@@ -104,7 +104,7 @@ func initClientNode(c *TCPReconn) (*net.TCPConn, error) {
 
 	log.Debug("Init client node")
 
-	if linkExists(c.Link.ID) {
+	if LinkExists(c.Link.ID) {
 		log.Warn("Node with such name is exist yet; ignore")
 	}
 
@@ -133,7 +133,7 @@ func initServerNode(c *TCPReconn) (net.Conn, error) {
 
 	log.Debug("Init server node")
 
-	if linkExists(c.Link.ID) {
+	if LinkExists(c.Link.ID) {
 		log.Warn("Node with such name is exist yet; ignore")
 	}
 
@@ -162,37 +162,21 @@ func initServerNode(c *TCPReconn) (net.Conn, error) {
 	return nil, err
 }
 
-func linkExists(linkName string) bool {
+func LinkExists(linkName string) bool {
 
 	if len(conns) == 0 {
 		log.Debug("no connections")
 		return false
 	}
-	for name, key := range conns {
-		log.Debug(name)
-		log.Debugf(" %v\n", key)
+	for name := range conns {
+		//log.Debug(name)
+		//log.Debugf(" %v\n", key)
 		if name == linkName {
 			return true
 		}
 	}
 	return false
 }
-
-// ConnectServer creates a working server node
-/*func ConnectServer() (net.Conn, error) {
-	// listen on all interfaces
-	ln, err := net.Listen("tcp", ":8081")
-	if err != nil {
-		return nil, err
-	}
-
-	// accept connection on port
-	conn, err := ln.Accept()
-	if err != nil {
-		return nil, err
-	}
-	return conn, nil
-}*/
 
 // ----------------------------------------------------------------------------
 
