@@ -1,10 +1,5 @@
 package transport
 
-import "github.com/ventu-io/slf"
-
-var pwdCurr = "KristinaEtc/transport.go"
-var log = slf.WithContext(pwdCurr)
-
 /*
 //------
 // Handler is an interface for communication WithContext

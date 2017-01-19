@@ -4,23 +4,23 @@ package transport
 type Handler string
 
 type creater interface {
-	CreateNode() noder
+	CreateNode() Noder
 	InitHandler(Handler)
-	RunConn(string)
+	RunConn(Noder)
 }
 
 type Factory struct {
 }
 
-func (f *Factory) Init(c creater, typeOfNode string) noder {
+func (f *Factory) Init(c creater, nodeConf []byte, h Handler) Noder {
 	node := c.CreateNode()
-
-	//node.RunConn(typeOfNode)
+	c.InitHandler(h)
+	c.RunConn(node)
 	return node
 }
 
-type noder interface {
+type Noder interface {
 	Disconnect()
-	Write()
-	GetStatus()
+	Write(string)
+	GetStatus() string
 }

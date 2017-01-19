@@ -1,5 +1,7 @@
 package tcp
 
+import "github.com/KristinaEtc/bdmq/transport"
+
 /*
 import "github.com/ventu-io/slf"
 
@@ -27,13 +29,19 @@ type TCPNode struct {
 
 //TCPNodeFactory realizes creater interface.
 type TCPNodeFactory struct {
-	*Factory
+	*transport.Factory
 	nodes map[string]*TCPNode
 }
 
 func (t *TCPNodeFactory) CreateNode() TCPNode {
 	node := TCPNode{}
 	return node
+}
+
+func (t *TCPNodeFactory) InitHandler(h transport.Handler) {
+}
+
+func (t *TCPNodeFactory) RunConn(node transport.Noder) {
 }
 
 type LinkDescription struct {
