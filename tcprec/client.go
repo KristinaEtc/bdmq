@@ -6,7 +6,6 @@
 package tcprec
 
 import (
-	"fmt"
 	"io"
 	"math"
 	"net"
@@ -20,7 +19,7 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-var log = slf.WithContext("client.go")
+var log = slf.WithContext("tcprec.go")
 
 const network = "tcp"
 
@@ -60,7 +59,7 @@ var conns map[string]net.Conn
 func Init(links []LinkOpts) (map[string]net.Conn, error) {
 
 	log.Debug("func Init")
-	return nil, fmt.Errorf("test")
+	//return nil, fmt.Errorf("test")
 
 	var err error
 	var newConn net.Conn
@@ -99,6 +98,7 @@ func Init(links []LinkOpts) (map[string]net.Conn, error) {
 			log.Warnf("Could not connect: id=%s\n", link.ID)
 			continue
 		}
+		log.Warnf("ID=%s", newNode.Link.ID)
 		conns[newNode.Link.ID] = newConn
 	}
 	return conns, nil
@@ -137,6 +137,7 @@ func initServerNode(c *TCPReconn) (net.Conn, error) {
 
 	log.Debug("Init server node")
 
+	log.Debugf("ID=%s", c.Link.ID)
 	if LinkExists(c.Link.ID) {
 		log.Warn("Node with such name is exist yet; ignore")
 	}
@@ -148,6 +149,7 @@ func initServerNode(c *TCPReconn) (net.Conn, error) {
 		// listen on all interfaces
 		ln, err = net.Listen(network, c.Link.Address)
 		if err != nil {
+			log.Errorf("error listen: %s", err.Error())
 			log.Error(err.Error())
 			time.Sleep(time.Second * 1)
 			continue
@@ -156,7 +158,7 @@ func initServerNode(c *TCPReconn) (net.Conn, error) {
 		// accept connection on port
 		conn, err = ln.Accept()
 		if err != nil {
-			log.Error(err.Error())
+			log.Errorf("Error accept: %s", err.Error())
 			time.Sleep(time.Second * 1)
 			continue
 		} else {
@@ -396,6 +398,8 @@ func (c *TCPReconn) Write(b []byte) (int, error) {
 	// protect conf values (retryInterval, maxRetries...)
 	c.lock.RLock()
 	defer c.lock.RUnlock()
+
+	log.Warn("My write() method")
 
 	for i := 0; i < c.maxRetries; i++ {
 		if atomic.LoadInt32(&c.status) == statusOnline {

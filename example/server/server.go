@@ -2,9 +2,11 @@ package main
 
 // do not move
 import _ "github.com/KristinaEtc/slflog"
-
 import (
+	"bufio"
+	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"github.com/KristinaEtc/bdmq/tcprec"
@@ -103,14 +105,14 @@ func main() {
 
 	/*
 		done := make(chan bool)
-		var wg sync.WaitGroup
 	*/
+	var wg sync.WaitGroup
 
 	// listen on all interfaces
 	config.ReadGlobalConfig(&globalOpt, "server-example")
 	log.Infof("server configuration: %v\n", globalOpt)
 
-	//wg.Add(len(globalOpt.Links))
+	//
 	//log.Debugf("num of nodes=%d", len(globalOpt.Links))
 
 	/*var ln net.Listener
@@ -130,11 +132,32 @@ func main() {
 	if links == nil
 	*/
 
-	_, err := tcprec.Init(globalOpt.Links)
+	l, err := tcprec.Init(globalOpt.Links)
 	if err != nil {
 		log.Errorf("tcprec Init error: %s", err.Error())
 		return
 	}
 
-	//wg.Wait()
+	for _, conn := range l {
+		wg.Add(1)
+		log.Debug("Added 1 waitg")
+		go func() {
+			// run loop forever (or until ctrl-c)
+			for {
+				log.Debug("Here")
+				// will listen for message to process ending in newline (\n)
+				message, _ := bufio.NewReader(conn).ReadString('\n')
+				// output message received
+				fmt.Print("Message Received:", string(message))
+				// sample process for string received
+				newmessage := strings.ToUpper(message)
+				// send new string back to client
+				conn.Write([]byte(newmessage + "\n"))
+				log.Debug("Here2")
+			}
+		}()
+
+	}
+
+	wg.Wait()
 }

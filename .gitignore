@@ -3,6 +3,7 @@ example/client-example
 example/server-example
 
 example/server/server
-example/server.config
-example/server/logs
+example/client/client
+example/*/*.config
+example/*/logs
 
