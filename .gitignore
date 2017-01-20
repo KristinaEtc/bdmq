@@ -6,4 +6,5 @@ example/server/server
 example/client/client
 example/*/*.config
 example/*/logs
+example/others/
 
