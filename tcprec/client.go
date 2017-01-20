@@ -6,6 +6,7 @@
 package tcprec
 
 import (
+	"fmt"
 	"io"
 	"math"
 	"net"
@@ -57,6 +58,9 @@ var conns map[string]net.Conn
 
 //Init reads links and creates nodes with their options
 func Init(links []LinkOpts) (map[string]net.Conn, error) {
+
+	log.Debug("func Init")
+	return nil, fmt.Errorf("test")
 
 	var err error
 	var newConn net.Conn
