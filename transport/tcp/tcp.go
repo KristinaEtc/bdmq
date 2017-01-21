@@ -14,7 +14,7 @@ type Connection struct {
 	handler string
 }
 
-// ConnDescription stores all configurate information about connection
+// ConnDescription stores  all configurate information about connection
 type ConnDescription struct {
 	address  string
 	nodeType string //client of server

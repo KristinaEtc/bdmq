@@ -50,7 +50,7 @@ var globalOpt = Global{
 
 }
 
-func run(wg *sync.WaitGroup, done chan (bool), id string, ln net.Listener) {
+//func run(wg *sync.WaitGroup, done chan (bool), id string, ln net.Listener) {
 	/*	defer func() {
 			wg.Done()
 			done <- true
@@ -99,64 +99,48 @@ func run(wg *sync.WaitGroup, done chan (bool), id string, ln net.Listener) {
 				continue
 			}
 		}*/
+
+func run(wg sync.WaitGroup, node tcprec.TCPReconn) {	
+
+		log.Debugf("Running node %s", node.ID)
+		for {
+			// will listen for message to process ending in newline (\n)
+			message, _ := bufio.NewReader(node).ReadString('\n')
+			fmt.Print("Message Received:", string(message))
+			// sample process for string received
+			newmessage := strings.ToUpper(message)
+			// send new string back to client
+			conn.Write([]byte(newmessage + "\n"))
+		}
+	}
 }
 
 func main() {
 
-	/*
-		done := make(chan bool)
-	*/
 	var wg sync.WaitGroup
 
-	// listen on all interfaces
+	changedStateIDNode := make(chan string)
+
 	config.ReadGlobalConfig(&globalOpt, "server-example")
-	log.Infof("server configuration: %v\n", globalOpt)
+	log.Infof("Server configuration: %v\n", globalOpt)
 
-	//
-	//log.Debugf("num of nodes=%d", len(globalOpt.Links))
+	tcpConnFactory := tcprec.TCPReconn{}
 
-	/*var ln net.Listener
-	var err error
-	for name, link := range globalOpt.Links {
-		log.WithField("id", name).Debug("Running server...")
+	nodes, err := tcpConnFactory.Init(tcpConnFactory,
+		[]byte(fmt.Sprintf("%v", globalOpt.Node)),
+	make(map[ID]"Handler, which I didn't implement"))
+	if err != nil{
+		log.Error("Error: %s", err.Error())
+	}
 
-		 listen on all interfaces
-		ln, err = net.Listen("tcp", link.Address)
-		if err != nil {
-			log.Error(err.Error())
-			continue
-		}
-		go run(&wg, done, link.ID, ln)
-
-			links, numOfFails := transport.ParseConfig(globalOpt.Links)
-	if links == nil
-	*/
-
-	l, err := tcprec.Init(globalOpt.Links)
-	if err != nil {
-		log.Errorf("tcprec Init error: %s", err.Error())
-		return
+	select{
+		case 
 	}
 
 	for _, conn := range l {
 		wg.Add(1)
 		log.Debug("Added 1 waitg")
-		go func() {
-			// run loop forever (or until ctrl-c)
-			for {
-				log.Debug("Here")
-				// will listen for message to process ending in newline (\n)
-				message, _ := bufio.NewReader(conn).ReadString('\n')
-				// output message received
-				fmt.Print("Message Received:", string(message))
-				// sample process for string received
-				newmessage := strings.ToUpper(message)
-				// send new string back to client
-				conn.Write([]byte(newmessage + "\n"))
-				log.Debug("Here2")
-			}
-		}()
-
+		go run()
 	}
 
 	wg.Wait()

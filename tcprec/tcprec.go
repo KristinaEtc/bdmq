@@ -1,8 +1,3 @@
-// Copyright © 2015 Clement 'cmc' Rey <cr.rey.clement@gmail.com>.
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file.
-
 package tcprec
 
 import (
@@ -16,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/ventu-io/slf"
 )
 
@@ -53,18 +49,42 @@ type TCPReconn struct {
 	Link          LinkOpts
 }
 
-var conns map[string]net.Conn
+// TCPReconnFactory realizes creater interface from transport library.
+type TCPReconnFactory struct {
+	*transport.Factory
+	Conns map[string]net.Conn
+}
+
+// CreateNode creates a struct TCPReconn, adds it to maps of connections
+// and returns it.
+func (t *TCPReconnFactory) CreateNode(links []LinkOpts) (map[string]net.Conn, error) {
+
+	log.Debug("(t *TCPReconnFactory) CreateNode")
+
+	t.Conns = make(map[string]net.Conn, 0)
+
+	//log.Debugf("Init %v config\n", links)
+	if links == nil && len(links) == 0 {
+		log.Debug(ErrEmptyNodeSlice.Error())
+		return nil, ErrEmptyNodeSlice
+	}
+	return t.Conns, nil
+}
+
+// InitHandlers creates Handlers, adds it to maps of Handlers
+// and returns it.
+func (t *TCPReconnFactory) InitHandlers(h transport.Handler) (map[string]net.Conn, error) {
+
+}
 
 //Init reads links and creates nodes with their options
-func Init(links []LinkOpts) (map[string]net.Conn, error) {
+func (t *TCPReconnFactory) Init(links []LinkOpts) (map[string]net.Conn, error) {
 
 	log.Debug("func Init")
 	//return nil, fmt.Errorf("test")
 
 	var err error
 	var newConn net.Conn
-
-	conns = make(map[string]net.Conn, 0)
 
 	//log.Debugf("Init %v config\n", links)
 	if links == nil && len(links) == 0 {
@@ -86,9 +106,9 @@ func Init(links []LinkOpts) (map[string]net.Conn, error) {
 
 		switch strings.ToLower(link.Mode) {
 		case "client":
-			newConn, err = initClientNode(newNode)
+			newConn, err = t.initClientNode(newNode)
 		case "server":
-			newConn, err = initServerNode(newNode)
+			newConn, err = t.initServerNode(newNode)
 		default:
 			log.Error(strings.ToLower(link.Mode))
 			log.Warnf("%s (ID=%s)\n", ErrWrongNodeMode.Error(), link.ID)
@@ -99,16 +119,16 @@ func Init(links []LinkOpts) (map[string]net.Conn, error) {
 			continue
 		}
 		log.Warnf("ID=%s", newNode.Link.ID)
-		conns[newNode.Link.ID] = newConn
+		t.Conns[newNode.Link.ID] = newConn
 	}
-	return conns, nil
+	return t.Conns, nil
 }
 
-func initClientNode(c *TCPReconn) (*net.TCPConn, error) {
+func (t *TCPReconnFactory) initClientNode(c *TCPReconn) (*net.TCPConn, error) {
 
 	log.Debug("Init client node")
 
-	if LinkExists(c.Link.ID) {
+	if t.LinkExists(c.Link.ID) {
 		log.Warn("Node with such name is exist yet; ignore")
 	}
 
@@ -133,12 +153,12 @@ func initClientNode(c *TCPReconn) (*net.TCPConn, error) {
 	return nil, ErrMaxRetries
 }
 
-func initServerNode(c *TCPReconn) (net.Conn, error) {
+func (t *TCPReconnFactory) initServerNode(c *TCPReconn) (net.Conn, error) {
 
 	log.Debug("Init server node")
 
 	log.Debugf("ID=%s", c.Link.ID)
-	if LinkExists(c.Link.ID) {
+	if t.LinkExists(c.Link.ID) {
 		log.Warn("Node with such name is exist yet; ignore")
 	}
 
@@ -168,13 +188,14 @@ func initServerNode(c *TCPReconn) (net.Conn, error) {
 	return nil, err
 }
 
-func LinkExists(linkName string) bool {
+// LinkExists checks if link with such ID exists.
+func (t *TCPReconnFactory) LinkExists(linkName string) bool {
 
-	if len(conns) == 0 {
+	if len(t.Conns) == 0 {
 		log.Debug("no connections")
 		return false
 	}
-	for name := range conns {
+	for name := range t.Conns {
 		//log.Debug(name)
 		//log.Debugf(" %v\n", key)
 		if name == linkName {
