@@ -116,27 +116,39 @@ func run(wg sync.WaitGroup, node tcprec.TCPReconn) {
 }
 
 func main() {
-
+/*
 	var wg sync.WaitGroup
 
 	changedStateIDNode := make(chan string)
 
 	config.ReadGlobalConfig(&globalOpt, "server-example")
 	log.Infof("Server configuration: %v\n", globalOpt)
+*/
 
-	tcpConnFactory := tcprec.TCPReconn{}
+/*
+type TCPReconnFactory struct {
+	Conns    map[string]net.Conn
+	Nodes    []*LinkOpts
+	Handlers *transport.Handlers
+}
+*/
+	g := tcprec.global{}
 
-	nodes, err := tcpConnFactory.Init(tcpConnFactory,
+	nodes, err := g.Init(g,
 		[]byte(fmt.Sprintf("%v", globalOpt.Node)),
-	make(map[ID]"Handler, which I didn't implement"))
+	make(map[string]transport.HandlerFunc))
 	if err != nil{
 		log.Error("Error: %s", err.Error())
 	}
 
+
+	/*
 	select{
 		case 
 	}
+	*/
 
+/*
 	for _, conn := range l {
 		wg.Add(1)
 		log.Debug("Added 1 waitg")
@@ -144,4 +156,5 @@ func main() {
 	}
 
 	wg.Wait()
+	*/
 }

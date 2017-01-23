@@ -1,18 +1,18 @@
 package transport
 
 import "github.com/ventu-io/slf"
-import "fmt"
 
-//HandlerFunc & Handler are not implemented
+//HandlerFunc is not implemented
 type HandlerFunc string
-type Handler map[string]HandlerFunc
+
+//Handlers is not implemented
+type Handlers map[string]HandlerFunc
 
 var log = slf.WithContext("transport.go")
 
-type factoryNodeCreater interface {
-	ParseNodeConfig([]byte) (Noder, error)
-	AddHandlers(Noder, Handler) error
-	RunConn(Noder) error
+type creater interface {
+	InitNodes([]byte) ([]Noder, error)
+	InitHandlers(Handlers) error
 }
 
 // Factory is internal class of class, which implements
@@ -23,32 +23,30 @@ type Factory struct {
 
 // Init is a method, which used for
 // creating a new node, adding Handlers and open new transport connection.
-func (f *Factory) Init(c creater, nodeConf []byte, h Handler) (Noder, error) {
+func (f *Factory) Init(c creater, confJSON []byte, h Handlers) ([]Noder, error) {
 
-	nodes, err := c.ParseNodeConfig(nodeConf)
+	nodes, err := c.InitNodes(confJSON)
 	if err != nil {
-		err = fmt.Errorf("Error while parsing nodes' config: %s", err.Error())
 		return nil, err
 	}
-
-	err = c.AddHandlers(nodes, h)
-	if err != nil {
-		err = fmt.Errorf("Error while adding handlers: %s", err.Error())
-		return nil, err
-	}
-
-	err = c.RunConn(nodes)
-	if err != nil {
-		err = fmt.Errorf("Error while start connections: %s", err.Error())
-		return nil, err
+	c.InitHandlers(h)
+	for _, n := range nodes {
+		n.RunConn()
 	}
 
 	return nodes, nil
 }
 
-// Noder is an interface which implements network transport layer
-// and it's methods.
+// Noder is an interface which present a struct with
+// common options and list of active connections (linbks;
+// implemented by Linker interface).
 type Noder interface {
+	RunConn()
+}
+
+// Linker is an interface which present connection node and
+// it's options.
+type Linker interface {
 	Write(b []byte) (int, error)
 	//Disconnect()
 	//GetStatus() string
