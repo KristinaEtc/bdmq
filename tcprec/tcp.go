@@ -1,4 +1,4 @@
-package tcp
+package tcprec
 
 // Copyright © 2016-2017 Kristina Etc <isitiriss@gmail.com>.
 //
