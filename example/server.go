@@ -4,7 +4,7 @@ package main
 import _ "github.com/KristinaEtc/slflog"
 
 import (
-	"github.com/KristinaEtc/bdmq/handler"
+	"github.com/KristinaEtc/bdmq/handlers"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
 	"github.com/ventu-io/slf"
@@ -38,7 +38,12 @@ func main() {
 
 	config.ReadGlobalConfig(&globalOpt, "server-main.go")
 
-	transport.RegisterHandlerFactory("testHandler", handler.HandlerTestFactory{})
+	log.Debugf("config=%v", globalOpt.Links)
+
+	transport.RegisterHandlerFactory("testHandler", handlers.HandlerTestFactory{})
+	transport.RegisterHandlerFactory("echoHandler", handlers.HandlerEchoFactory{})
+	transport.RegisterHandlerFactory("worldHandler", handlers.HandlerHelloWorldFactory{})
+
 	n := transport.NewNode()
 
 	err := n.InitLinkDesc(globalOpt.Links)

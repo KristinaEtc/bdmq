@@ -7,7 +7,8 @@ var log = slf.WithContext("transport.go")
 // Linker is an interface which present connection node and
 // it's options.
 type Linker interface {
-	Write(b []byte) (int, error)
+	Write(string) error
+	Read()
 	//Disconnect()
 	//GetStatus() string
 }
@@ -15,9 +16,9 @@ type Linker interface {
 // Handler is an interface for loop coupling between transport layer and
 // protocol's realization.
 type Handler interface {
-	OnRead()
+	OnRead(msg string)
 	OnConnect() error
-	OnWrite()
+	OnWrite(msg string)
 	//...
 }
 
