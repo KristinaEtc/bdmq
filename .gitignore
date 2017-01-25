@@ -1,10 +1,4 @@
 example/logs/
-example/client-example
-example/server-example
-
-example/server/server
-example/client/client
-example/*/*.config
-example/*/logs
-example/others/
+example/server
+example/*.config
 
