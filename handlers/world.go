@@ -9,12 +9,10 @@ import (
 type HandlerHelloWorldFactory struct {
 }
 
-var HelloWorldFactory *HandlerEchoFactory
-
 func (h HandlerHelloWorldFactory) InitHandler(l *transport.LinkActive, n *transport.Node) transport.Handler {
 
 	log.Debugf("InitHandler")
-	handler := &HandlerEcho{
+	handler := &HandlerHelloWorld{
 		link: l,
 		node: n,
 	}
@@ -37,7 +35,7 @@ func (h *HandlerHelloWorld) OnConnect() error {
 	log.Debugf("OnConnect")
 	// TODO: to add channel where will be sended a kill signal
 	ticker := time.NewTicker(time.Second * 2)
-	go func() {
+	func() {
 		for _ = range ticker.C {
 			h.OnWrite("Hello World")
 		}

@@ -5,8 +5,6 @@ import "github.com/KristinaEtc/bdmq/transport"
 type HandlerTestFactory struct {
 }
 
-var TestFactory *HandlerTestFactory
-
 func (h HandlerTestFactory) InitHandler(l *transport.LinkActive, n *transport.Node) transport.Handler {
 
 	log.Debugf("InitHandler")
