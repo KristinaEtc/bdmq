@@ -1,7 +1,7 @@
 package transport
 
 import (
-	"bufio"
+	"math/rand"
 	"net"
 	"strings"
 	"sync"
@@ -10,7 +10,7 @@ import (
 
 const network = "tcp"
 
-const backOffLimit = time.Duration(time.Minute * 10)
+const backOffLimit = time.Duration(time.Second * 600)
 
 // status enum
 const (
@@ -28,22 +28,11 @@ type LinkDesc struct {
 	handler string
 }
 
-// LinkActive provides a TCP connection with auto-reconnect capabilities.
-type LinkActive struct {
-	conn         *net.Conn
-	lock         sync.RWMutex
-	status       int32
-	LinkConf     *LinkDesc
-	LinkActiveID string
-	handler      *Handler
-	//parser       *parser.Parser
-}
-
 // Node is a struct which combine connections with common Node's options.
 type Node struct {
 	NodeID      string
 	LinkDesc    map[string]*LinkDesc
-	LinkActives map[string]*LinkActive
+	LinkActives map[string]LinkerActive
 }
 
 //--------------------------------------
@@ -52,7 +41,7 @@ type Node struct {
 func NewNode() (n *Node) {
 	n = &Node{
 		LinkDesc:    make(map[string]*LinkDesc),
-		LinkActives: make(map[string]*LinkActive),
+		LinkActives: make(map[string]LinkerActive),
 	}
 	return
 }
@@ -89,8 +78,8 @@ func (n *Node) Run() error {
 	//	var err error
 
 	if n.LinkDesc == nil && len(n.LinkDesc) == 0 {
-		log.Debug(ErrEmptyLinkSlice.Error())
-		return ErrEmptyLinkSlice
+		log.Debug(ErrEmptyLinkRepository.Error())
+		return ErrEmptyLinkRepository
 	}
 
 	for _, lD := range n.LinkDesc {
@@ -119,16 +108,47 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 
 	var err error
 	var ln net.Listener
-	// TODO: change this block when refactoring
-	// listen on all interfaces
+
+	rand.Seed(time.Now().UnixNano())
+	var secToRecon = time.Duration(time.Second * 2)
+	var numOfRecon = 0
+
+	ch := make(chan string)
+
+	n.InitLinkActiveStub(linkD, &ch)
+
 	for {
 		ln, err = net.Listen(network, linkD.address)
-		if err != nil {
-			log.WithField("ID=", linkD.linkID).Errorf("Error listen: %s", err.Error())
-			time.Sleep(time.Second * 1)
-			continue
+		if err == nil {
+			log.WithField("ID=", linkD.linkID).Debugf("Created a connection with: %s", ln.Addr().String())
+			break
 		}
-		break
+
+		log.WithField("ID=", linkD.linkID).Errorf("Error listen: %s. Reconnecting after %d seconds.", err.Error(), secToRecon/1000000000)
+		ticker := time.NewTicker(secToRecon)
+
+		select {
+		case _ = <-ticker.C:
+			{
+				if secToRecon < backOffLimit {
+					randomAdd := int(0.1*float64(secToRecon)) + 1
+					secToRecon = (secToRecon + (time.Duration(rand.Intn(randomAdd)))*time.Nanosecond) * 2
+					numOfRecon++
+				}
+				ticker = time.NewTicker(secToRecon)
+				continue
+			}
+
+		case command := <-*(n.LinkActives[linkD.linkID]).(*LinkActiveStub).commandCh:
+			{
+				if strings.ToLower(command) == commandQuit {
+					log.WithField("ID=", linkD.linkID).Info("Got quit command. Closing link.")
+					n.LinkActives[linkD.linkID].Disconnect()
+					return
+				}
+				log.WithField("ID=", linkD.linkID).Warnf("Got impermissible command %s. Ignored.", command)
+			}
+		}
 	}
 
 	for {
@@ -141,20 +161,21 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 			continue
 		}
 		log.WithField("link ID=", linkD.linkID).Debug("New client")
-		n.InitLinkActive(linkD, &conn)
+		n.InitLinkActiveWork(linkD, &conn, ((n.LinkActives[linkD.linkID]).(*LinkActiveStub)).commandCh)
 
 	}
 
 }
 
-func (n *Node) InitLinkActive(linkD *LinkDesc, conn *net.Conn) {
+func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *chan string) {
 
 	log.Debug("InitLinkActive")
 
-	newActiveLink := LinkActive{
+	newActiveLink := LinkActiveWork{
 		conn:         conn,
 		LinkConf:     linkD,
 		LinkActiveID: linkD.linkID + ":" + (*conn).RemoteAddr().String(),
+		commandCh:    commandCh,
 	}
 
 	h := handlers[linkD.handler].InitHandler(&newActiveLink, n)
@@ -170,23 +191,21 @@ func (n *Node) InitLinkActive(linkD *LinkDesc, conn *net.Conn) {
 
 }
 
+func (n *Node) InitLinkActiveStub(linkD *LinkDesc, commandCh *chan string) {
+
+	log.Debug("InitLinkActiveStub")
+
+	newActiveLink := LinkActiveStub{
+		commandCh:    commandCh,
+		LinkActiveID: linkD.linkID + ":" + linkD.address,
+	}
+
+	n.LinkActives[linkD.linkID] = &newActiveLink
+	log.Debug("InitLinkActiveStub closing")
+
+}
+
 func (n *Node) initClientLink(linkD *LinkDesc) {
 	log.Debug("Init client node")
 
-}
-
-func (lA *LinkActive) Read() {
-	for {
-		message, err := bufio.NewReader(*lA.conn).ReadString('\n')
-		if err != nil {
-			log.WithField("ID=", lA.LinkActiveID).Errorf("Error read: %s", err.Error())
-		}
-		log.WithField("ID=", lA.LinkActiveID).Debugf("Message Received: %s", string(message))
-		go (*lA.handler).OnRead(message)
-	}
-}
-
-func (lA *LinkActive) Write(msg string) error {
-	(*lA.conn).Write([]byte(msg + "\n"))
-	return nil
 }

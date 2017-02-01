@@ -3,7 +3,7 @@
   "Links": [
     {
         "LinkID": "ID1",
-        "Address": "localhost:1234",
+        "Address": "localhost:40000",
         "Mode": "server",
         "Handler": "worldHandler"
       }

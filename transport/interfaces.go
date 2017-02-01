@@ -4,6 +4,11 @@ import "github.com/ventu-io/slf"
 
 var log = slf.WithContext("transport.go")
 
+const (
+	commandQuit = "QUIT"
+)
+
+/*
 // Linker is an interface which present connection node and
 // it's options.
 type Linker interface {
@@ -12,6 +17,7 @@ type Linker interface {
 	//Disconnect()
 	//GetStatus() string
 }
+*/
 
 // Handler is an interface for loop coupling between transport layer and
 // protocol's realization.
@@ -23,7 +29,7 @@ type Handler interface {
 }
 
 type HandlerFactory interface {
-	InitHandler(*LinkActive, *Node) Handler
+	InitHandler(LinkerActive, *Node) Handler
 }
 
 // HandlerFactories stores loaded Handlers
