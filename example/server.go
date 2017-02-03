@@ -30,6 +30,7 @@ var globalOpt = Global{
 			Address: "localhost:6666",
 			Mode:    "server",
 			Handler: "testHandler",
+			BufSize: 1024,
 		},
 	},
 }

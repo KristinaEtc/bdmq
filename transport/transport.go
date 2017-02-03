@@ -26,6 +26,7 @@ type LinkDesc struct {
 	address string
 	mode    string //client/server
 	handler string
+	bufSize int
 }
 
 // Node is a struct which combine connections with common Node's options.
@@ -182,13 +183,13 @@ func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *ch
 	newActiveLink.handler = &h
 	n.LinkActives[newActiveLink.LinkActiveID] = &newActiveLink
 
-	go (*newActiveLink.handler).OnConnect()
-	go newActiveLink.Read()
+	go func() {
+		(*newActiveLink.handler).OnConnect()
+		newActiveLink.Read()
+	}()
 
-	//	WaitGroup(2)
-
+	//wg.WaitGroup(1)
 	log.Debug("InitLinkActive closing")
-
 }
 
 func (n *Node) InitLinkActiveStub(linkD *LinkDesc, commandCh *chan string) {

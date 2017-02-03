@@ -9,6 +9,7 @@ type LinkDescFromJSON struct {
 	Address string
 	Mode    string
 	Handler string
+	BufSize int
 }
 
 func (n *Node) parseFullLinkConf(data []byte) ([]LinkDescFromJSON, error) {

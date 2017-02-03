@@ -37,7 +37,7 @@ func (h *HandlerHelloWorld) OnConnect() error {
 	ticker := time.NewTicker(time.Second * 2)
 	func() {
 		for _ = range ticker.C {
-			h.OnWrite("Hello World")
+			h.OnWrite("Hello World\n")
 		}
 	}()
 	return nil

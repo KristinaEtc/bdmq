@@ -77,7 +77,7 @@ func (lAWork *LinkActiveWork) Read() error {
 	log.Info("(lSub *LinkActiveWork)Read")
 
 	for {
-		message, err := bufio.NewReader(*lAWork.conn).ReadString('\n')
+		message, err := bufio.NewReader(*lAWork.conn).ReadBytes()
 		if err != nil {
 			log.WithField("ID=", lAWork.LinkActiveID).Errorf("Error read: %s", err.Error())
 		}
