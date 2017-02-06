@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -33,6 +32,7 @@ type Node struct {
 	NodeID      string
 	LinkDesc    map[string]*LinkDesc
 	LinkActives map[string]LinkerActive
+	LinkStubs   map[string]LinkerActive
 }
 
 // NewNode creates an instance of Node struct.
@@ -40,6 +40,7 @@ func NewNode() (n *Node) {
 	n = &Node{
 		LinkDesc:    make(map[string]*LinkDesc),
 		LinkActives: make(map[string]LinkerActive),
+		LinkStubs:   make(map[string]LinkerActive),
 	}
 	return
 }
@@ -121,27 +122,30 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 			break
 		}
 
-		log.WithField("ID=", linkD.linkID).Errorf("Error listen: %s. Reconnecting after %d seconds.", err.Error(), secToRecon/1000000000)
+		log.WithField("ID=", linkD.linkID).Errorf("Error listen: %s. Reconnecting after %d milliseconds.", err.Error(), secToRecon/1000000.0)
 		ticker := time.NewTicker(secToRecon)
 
 		select {
 		case _ = <-ticker.C:
 			{
 				if secToRecon < backOffLimit {
-					randomAdd := int(0.1*float64(secToRecon)) + 1
-					log.Errorf("Random addition=%d", randomAdd)
-					secToRecon = (secToRecon+(time.Duration(rand.Intn(randomAdd)))*time.Nanosecond)*2 + time.Duration(randomAdd)
+
+					//randomAdd := int(r1.Float64()*(float64(secToRecon)*0.1) + 0.2*float64(secToRecon))
+					randomAdd := secToRecon / 100 * (20 + time.Duration(r1.Int31n(10)))
+					//log.Debugf("Random addition=%d", randomAdd/1000000)
+					secToRecon = secToRecon*2 + time.Duration(randomAdd)
+					//log.Debugf("secToRecon=%d", secToRecon/1000000)
 					numOfRecon++
 				}
 				ticker = time.NewTicker(secToRecon)
 				continue
 			}
 
-		case command := <-*(n.LinkActives[linkD.linkID]).(*LinkActiveStub).commandCh:
+		case command := <-*(n.LinkStubs[linkD.linkID]).(*LinkActiveStub).commandCh:
 			{
 				if strings.ToLower(command) == commandQuit {
 					log.WithField("ID=", linkD.linkID).Info("Got quit command. Closing link.")
-					n.LinkActives[linkD.linkID].Disconnect()
+					n.LinkStubs[linkD.linkID].Disconnect()
 					return
 				}
 				log.WithField("ID=", linkD.linkID).Warnf("Got impermissible command %s. Ignored.", command)
@@ -159,7 +163,10 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 			continue
 		}
 		log.WithField("link ID=", linkD.linkID).Debug("New client")
-		n.InitLinkActiveWork(linkD, &conn, ((n.LinkActives[linkD.linkID]).(*LinkActiveStub)).commandCh)
+
+		// race condition
+		n.InitLinkActiveWork(linkD, &conn, ((n.LinkStubs[linkD.linkID]).(*LinkActiveStub)).commandCh)
+		delete(n.LinkStubs, linkD.linkID)
 
 	}
 
@@ -203,7 +210,7 @@ func (n *Node) InitLinkActiveStub(linkD *LinkDesc, commandCh *chan string) {
 		LinkActiveID: linkD.linkID + ":" + linkD.address,
 	}
 
-	n.LinkActives[linkD.linkID] = &newActiveLink
+	n.LinkStubs[linkD.linkID] = &newActiveLink
 	log.Debug("InitLinkActiveStub closing")
 
 }
