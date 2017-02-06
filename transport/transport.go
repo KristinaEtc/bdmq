@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"net"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -35,8 +34,6 @@ type Node struct {
 	LinkDesc    map[string]*LinkDesc
 	LinkActives map[string]LinkerActive
 }
-
-//--------------------------------------
 
 // NewNode creates an instance of Node struct.
 func NewNode() (n *Node) {
@@ -69,12 +66,12 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 	return nil
 }
 
-//Run reads links and creates nodes with their options.
+// Run reads links and creates nodes with their options.
 func (n *Node) Run() error {
 
 	log.Debug("func Run")
 
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 
 	//	var err error
 
@@ -87,10 +84,10 @@ func (n *Node) Run() error {
 
 		switch strings.ToLower(lD.mode) {
 		case "client":
-			wg.Add(1)
+			//	wg.Add(1)
 			go n.initClientLink(lD)
 		case "server":
-			wg.Add(1)
+			//	wg.Add(1)
 			go n.initServerLink(lD)
 		default:
 			log.Error(strings.ToLower(lD.mode))
@@ -98,7 +95,7 @@ func (n *Node) Run() error {
 		}
 	}
 
-	wg.Wait()
+	//	wg.Wait()
 	log.Debug("func Run closing")
 	return nil
 }
@@ -110,7 +107,6 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 	var err error
 	var ln net.Listener
 
-	rand.Seed(time.Now().UnixNano())
 	var secToRecon = time.Duration(time.Second * 2)
 	var numOfRecon = 0
 
@@ -133,7 +129,8 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 			{
 				if secToRecon < backOffLimit {
 					randomAdd := int(0.1*float64(secToRecon)) + 1
-					secToRecon = (secToRecon + (time.Duration(rand.Intn(randomAdd)))*time.Nanosecond) * 2
+					log.Errorf("Random addition=%d", randomAdd)
+					secToRecon = (secToRecon+(time.Duration(rand.Intn(randomAdd)))*time.Nanosecond)*2 + time.Duration(randomAdd)
 					numOfRecon++
 				}
 				ticker = time.NewTicker(secToRecon)
@@ -166,6 +163,11 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 
 	}
 
+}
+
+func (n *Node) initClientLink(linkD *LinkDesc) {
+
+	log.Debug("InitClientLink")
 }
 
 func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *chan string) {
@@ -206,7 +208,6 @@ func (n *Node) InitLinkActiveStub(linkD *LinkDesc, commandCh *chan string) {
 
 }
 
-func (n *Node) initClientLink(linkD *LinkDesc) {
-	log.Debug("Init client node")
-
+func (n *Node) Stop() {
+	log.Debug("Stop(). Not implemented.")
 }

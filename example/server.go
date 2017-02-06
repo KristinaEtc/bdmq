@@ -4,9 +4,14 @@ package main
 import _ "github.com/KristinaEtc/slflog"
 
 import (
+	"bufio"
+	"os"
+	"strings"
+
 	"github.com/KristinaEtc/bdmq/handlers"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
+	_ "github.com/KristinaEtc/slflog"
 	"github.com/ventu-io/slf"
 )
 
@@ -55,9 +60,15 @@ func main() {
 	//n.AddLinkDesc([]byte(fmt.Sprintf("%v", globalOpt.Node)))
 	n.Run()
 
-	/*
-		//n.SendMessage("topic1", "my message")
-		//n.Wait()
-		//n.Stop()
-	*/
+	scanner := bufio.NewScanner(os.Stdin)
+
+	for scanner.Scan() {
+		if strings.ToLower(scanner.Text()) == "q" {
+			n.Stop()
+			os.Exit(1)
+		}
+	}
+
+	//n.SendMessage("topic1", "my message")
+
 }

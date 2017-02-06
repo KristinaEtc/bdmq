@@ -1,12 +1,24 @@
 package transport
 
-import "github.com/ventu-io/slf"
+import (
+	"math/rand"
+	"time"
+
+	"github.com/ventu-io/slf"
+)
 
 var log = slf.WithContext("transport.go")
+
+// SizeOfBuf is a size of tcp buffer
+const SizeOfBuf = 1024
 
 const (
 	commandQuit = "QUIT"
 )
+
+//for generating reconnect endpoint
+var s1 = rand.NewSource(time.Now().UnixNano())
+var r1 = rand.New(s1)
 
 /*
 // Linker is an interface which present connection node and

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"sync"
 )
 
@@ -68,21 +69,27 @@ func (lAWork *LinkActiveWork) Disconnect() error {
 }
 
 func (lAWork *LinkActiveWork) Write(msg string) error {
+
 	log.Info("(lSub *LinkActiveStub)Write")
 	(*lAWork.conn).Write([]byte(msg + "\n"))
 	return nil
 }
 
+//func (lAWork *LinkActiveWork) Read(b []byte) error {
 func (lAWork *LinkActiveWork) Read() error {
 	log.Info("(lSub *LinkActiveWork)Read")
 
+	buf := make([]byte, SizeOfBuf)
+
 	for {
-		message, err := bufio.NewReader(*lAWork.conn).ReadBytes()
+		message, err := bufio.NewReader(*lAWork.conn).Read(buf)
 		if err != nil {
 			log.WithField("ID=", lAWork.LinkActiveID).Errorf("Error read: %s", err.Error())
+			log.WithField("ID=", lAWork.LinkActiveID).Errorf("ADD GRASEFUL RECONNECT")
+			os.Exit(1)
 		}
 		log.WithField("ID=", lAWork.LinkActiveID).Debugf("Message Received: %s", string(message))
-		go (*lAWork.handler).OnRead(message)
+		go (*lAWork.handler).OnRead(string(message))
 	}
 
 }
