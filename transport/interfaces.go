@@ -41,7 +41,7 @@ type Handler interface {
 }
 
 type HandlerFactory interface {
-	InitHandler(LinkerActive, *Node) Handler
+	InitHandler(LinkActiver, *Node) Handler
 }
 
 // HandlerFactories stores loaded Handlers

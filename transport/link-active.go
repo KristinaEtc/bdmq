@@ -8,47 +8,47 @@ import (
 	"sync"
 )
 
-// LinkActive is an interface for connection struct.
+// LinkActiver is an interface for connection struct.
 // Realization of this interface depends of connection state:
 // * connected
 // * reconnecting
 // * error state
-type LinkerActive interface {
+type LinkActiver interface {
 	Write(string) error
 	Read() error
 	GetLinkActiveID() string
 	Disconnect() error
 }
 
-// LinkActiveStub initialize LinkActive interface when
+// LinkStub initialize LinkStater interface when
 // connecting or reconnecting
-type LinkActiveStub struct {
+type LinkStub struct {
 	commandCh    *chan string
 	LinkActiveID string
 }
 
-func (lAStub *LinkActiveStub) Write(msg string) error {
-	log.Warn("(lSub *LinkActiveStub)Write")
+func (lAStub *LinkStub) Write(msg string) error {
+	log.Warn("(lSub *LinkStub)Write")
 	return fmt.Errorf("%s", ErrStubFunction)
 }
 
-func (lAStub *LinkActiveStub) GetLinkActiveID() string {
+func (lAStub *LinkStub) GetLinkActiveID() string {
 	return lAStub.LinkActiveID
 }
 
-func (lAStub *LinkActiveStub) Read() error {
-	log.Warn("(lSub *LinkActiveStub)Read")
+func (lAStub *LinkStub) Read() error {
+	log.Warn("(lSub *LinkStub)Read")
 	return fmt.Errorf("%s", ErrStubFunction)
 }
 
-func (lAStub *LinkActiveStub) Disconnect() error {
-	log.Info("(lSub *LinkActiveStub) Disconnect")
+func (lAStub *LinkStub) Disconnect() error {
+	log.Info("(lSub *LinkStub) Disconnect")
 	return fmt.Errorf("%s", ErrStubFunction)
 }
 
-// LinkActiveWork initialize LinkActive interface when
+// LinkActive initialize LinkStater interface when
 // connecting is ok
-type LinkActiveWork struct {
+type LinkActive struct {
 	conn         *net.Conn
 	lock         sync.RWMutex
 	status       int32
@@ -59,25 +59,25 @@ type LinkActiveWork struct {
 	commandCh *chan string
 }
 
-func (lAWork *LinkActiveWork) GetLinkActiveID() string {
+func (lAWork *LinkActive) GetLinkActiveID() string {
 	return lAWork.LinkActiveID
 }
 
-func (lAWork *LinkActiveWork) Disconnect() error {
-	log.Info("(lSub *LinkActiveStub)Disconnect")
+func (lAWork *LinkActive) Disconnect() error {
+	log.Info("(lSub *LinkActive)Disconnect")
 	return nil
 }
 
-func (lAWork *LinkActiveWork) Write(msg string) error {
+func (lAWork *LinkActive) Write(msg string) error {
 
-	log.Info("(lSub *LinkActiveStub)Write")
+	log.Info("(lSub *LinkActive)Write")
 	(*lAWork.conn).Write([]byte(msg + "\n"))
 	return nil
 }
 
-//func (lAWork *LinkActiveWork) Read(b []byte) error {
-func (lAWork *LinkActiveWork) Read() error {
-	log.Info("(lSub *LinkActiveWork)Read")
+//func (lAWork *LinkActive) Read(b []byte) error {
+func (lAWork *LinkActive) Read() error {
+	log.Info("(lSub *LinkActive)Read")
 
 	buf := make([]byte, SizeOfBuf)
 

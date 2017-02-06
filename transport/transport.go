@@ -31,16 +31,16 @@ type LinkDesc struct {
 type Node struct {
 	NodeID      string
 	LinkDesc    map[string]*LinkDesc
-	LinkActives map[string]LinkerActive
-	LinkStubs   map[string]LinkerActive
+	LinkActives map[string]LinkActiver
+	LinkStubs   map[string]LinkActiver
 }
 
 // NewNode creates an instance of Node struct.
 func NewNode() (n *Node) {
 	n = &Node{
 		LinkDesc:    make(map[string]*LinkDesc),
-		LinkActives: make(map[string]LinkerActive),
-		LinkStubs:   make(map[string]LinkerActive),
+		LinkActives: make(map[string]LinkActiver),
+		LinkStubs:   make(map[string]LinkActiver),
 	}
 	return
 }
@@ -130,18 +130,15 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 			{
 				if secToRecon < backOffLimit {
 
-					//randomAdd := int(r1.Float64()*(float64(secToRecon)*0.1) + 0.2*float64(secToRecon))
 					randomAdd := secToRecon / 100 * (20 + time.Duration(r1.Int31n(10)))
-					//log.Debugf("Random addition=%d", randomAdd/1000000)
 					secToRecon = secToRecon*2 + time.Duration(randomAdd)
-					//log.Debugf("secToRecon=%d", secToRecon/1000000)
 					numOfRecon++
 				}
 				ticker = time.NewTicker(secToRecon)
 				continue
 			}
 
-		case command := <-*(n.LinkStubs[linkD.linkID]).(*LinkActiveStub).commandCh:
+		case command := <-*(n.LinkStubs[linkD.linkID]).(*LinkStub).commandCh:
 			{
 				if strings.ToLower(command) == commandQuit {
 					log.WithField("ID=", linkD.linkID).Info("Got quit command. Closing link.")
@@ -165,7 +162,7 @@ func (n *Node) initServerLink(linkD *LinkDesc) {
 		log.WithField("link ID=", linkD.linkID).Debug("New client")
 
 		// race condition
-		n.InitLinkActiveWork(linkD, &conn, ((n.LinkStubs[linkD.linkID]).(*LinkActiveStub)).commandCh)
+		n.InitLinkActiveWork(linkD, &conn, ((n.LinkStubs[linkD.linkID]).(*LinkStub)).commandCh)
 		delete(n.LinkStubs, linkD.linkID)
 
 	}
@@ -181,7 +178,7 @@ func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *ch
 
 	log.Debug("InitLinkActive")
 
-	newActiveLink := LinkActiveWork{
+	newActiveLink := LinkActive{
 		conn:         conn,
 		LinkConf:     linkD,
 		LinkActiveID: linkD.linkID + ":" + (*conn).RemoteAddr().String(),
@@ -205,7 +202,7 @@ func (n *Node) InitLinkActiveStub(linkD *LinkDesc, commandCh *chan string) {
 
 	log.Debug("InitLinkActiveStub")
 
-	newActiveLink := LinkActiveStub{
+	newActiveLink := LinkStub{
 		commandCh:    commandCh,
 		LinkActiveID: linkD.linkID + ":" + linkD.address,
 	}
