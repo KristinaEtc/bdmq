@@ -31,6 +31,12 @@ type Linker interface {
 }
 */
 
+type LinkWriter interface {
+	Write(string) error
+	Close()
+	GetActiveLinkID() string
+}
+
 // Handler is an interface for loop coupling between transport layer and
 // protocol's realization.
 type Handler interface {
@@ -41,7 +47,7 @@ type Handler interface {
 }
 
 type HandlerFactory interface {
-	InitHandler(LinkActiver, *Node) Handler
+	InitHandler(LinkWriter, *Node) Handler
 }
 
 // HandlerFactories stores loaded Handlers
@@ -53,4 +59,14 @@ var handlers HandlerFactories = make(map[string]HandlerFactory)
 func RegisterHandlerFactory(hName string, h HandlerFactory) {
 	log.Debug("RegisterHandlerFactory")
 	handlers[hName] = h
+}
+
+type LinkControl interface {
+	Close()
+	Id() string
+}
+
+type LinkRegistry interface {
+	RegisterLinkControl(linkControl LinkControl)
+	UnregisterLinkControl(linkControl LinkControl)
 }

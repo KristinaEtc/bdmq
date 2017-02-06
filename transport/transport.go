@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"net"
 	"strings"
 	"time"
 )
@@ -29,18 +28,27 @@ type LinkDesc struct {
 
 // Node is a struct which combine connections with common Node's options.
 type Node struct {
-	NodeID      string
-	LinkDesc    map[string]*LinkDesc
-	LinkActives map[string]LinkActiver
-	LinkStubs   map[string]LinkActiver
+	NodeID   string
+	LinkDesc map[string]*LinkDesc
+	//LinkActives  map[string]LinkActiver
+	//LinkControls map[string]LinkActiver
+	LinkControls map[string]LinkControl
+	CommandCh    chan *NodeCommand
+	hasLinks     bool
+}
+
+type NodeCommand struct {
+	command string
+	ctrl    LinkControl
 }
 
 // NewNode creates an instance of Node struct.
 func NewNode() (n *Node) {
 	n = &Node{
-		LinkDesc:    make(map[string]*LinkDesc),
-		LinkActives: make(map[string]LinkActiver),
-		LinkStubs:   make(map[string]LinkActiver),
+		LinkDesc: make(map[string]*LinkDesc),
+		//LinkActives:  make(map[string]LinkActiver),
+		LinkControls: make(map[string]LinkControl),
+		CommandCh:    make(chan *NodeCommand),
 	}
 	return
 }
@@ -81,15 +89,17 @@ func (n *Node) Run() error {
 		return ErrEmptyLinkRepository
 	}
 
+	go n.MainLoop()
+
 	for _, lD := range n.LinkDesc {
 
 		switch strings.ToLower(lD.mode) {
 		case "client":
 			//	wg.Add(1)
-			go n.initClientLink(lD)
+			go n.initClientLinkControl(lD)
 		case "server":
 			//	wg.Add(1)
-			go n.initServerLink(lD)
+			go n.initServerLinkControl(lD)
 		default:
 			log.Error(strings.ToLower(lD.mode))
 			log.Warnf("%s (ID=%s)\n", ErrWrongNodeMode.Error(), lD.linkID)
@@ -101,80 +111,95 @@ func (n *Node) Run() error {
 	return nil
 }
 
-func (n *Node) initServerLink(linkD *LinkDesc) {
-
-	log.Debug("InitServerLink")
-
-	var err error
-	var ln net.Listener
-
-	var secToRecon = time.Duration(time.Second * 2)
-	var numOfRecon = 0
-
-	ch := make(chan string)
-
-	n.InitLinkActiveStub(linkD, &ch)
-
+func (n *Node) MainLoop() {
+	log.Debug("func MainLoop")
 	for {
-		ln, err = net.Listen(network, linkD.address)
-		if err == nil {
-			log.WithField("ID=", linkD.linkID).Debugf("Created a connection with: %s", ln.Addr().String())
+		cmd := <-n.CommandCh
+		isExiting := n.processCommand(cmd)
+		if isExiting {
 			break
 		}
-
-		log.WithField("ID=", linkD.linkID).Errorf("Error listen: %s. Reconnecting after %d milliseconds.", err.Error(), secToRecon/1000000.0)
-		ticker := time.NewTicker(secToRecon)
-
-		select {
-		case _ = <-ticker.C:
-			{
-				if secToRecon < backOffLimit {
-
-					randomAdd := secToRecon / 100 * (20 + time.Duration(r1.Int31n(10)))
-					secToRecon = secToRecon*2 + time.Duration(randomAdd)
-					numOfRecon++
-				}
-				ticker = time.NewTicker(secToRecon)
-				continue
-			}
-
-		case command := <-*(n.LinkStubs[linkD.linkID]).(*LinkStub).commandCh:
-			{
-				if strings.ToLower(command) == commandQuit {
-					log.WithField("ID=", linkD.linkID).Info("Got quit command. Closing link.")
-					n.LinkStubs[linkD.linkID].Disconnect()
-					return
-				}
-				log.WithField("ID=", linkD.linkID).Warnf("Got impermissible command %s. Ignored.", command)
-			}
-		}
+		//todo: wait quit
 	}
+	log.Debug("MainLoop exiting")
+}
+
+func (n *Node) processCommand(cmd *NodeCommand) bool {
+	log.Debugf("processCommand %s", cmd.command)
+	if cmd.command == "stop" {
+		log.Infof("stop received")
+		for k, v := range n.LinkControls {
+			log.Infof("send close to %s", k)
+			v.Close()
+		}
+		return false
+	}
+	if cmd.command == "unregister" {
+		delete(n.LinkControls, cmd.ctrl.Id())
+		n.hasLinks = len(n.LinkControls) > 0
+		return !n.hasLinks
+	}
+	if cmd.command == "register" {
+		n.LinkControls[cmd.ctrl.Id()] = cmd.ctrl
+		n.hasLinks = len(n.LinkControls) > 0
+		return false
+	}
+	log.Warnf("unknown command %s", cmd.command)
+	return false
+}
+
+func (n *Node) RegisterLinkControl(linkControl LinkControl) {
+	n.CommandCh <- &NodeCommand{
+		command: "register",
+		ctrl:    linkControl,
+	}
+}
+
+func (n *Node) UnregisterLinkControl(linkControl LinkControl) {
+	n.CommandCh <- &NodeCommand{
+		command: "unregister",
+		ctrl:    linkControl,
+	}
+}
+
+func (n *Node) initServerLinkControl(linkD *LinkDesc) {
+
+	log.Debug("initServerLinkControl")
+
+	linkControl := LinkControlServer{
+		CommandCh: make(chan string),
+		//LinkActiveID: linkD.linkID + ":" + linkD.address,
+		Node:     n,
+		LinkDesc: linkD,
+	}
+
+	//n.LinkControls[linkD.linkID] = &newLinkControlS
+	n.RegisterLinkControl(&linkControl)
 
 	for {
-
-		// accept connection on port
-		conn, err := ln.Accept()
+		ln, err := linkControl.Listen()
 		if err != nil {
-			log.WithField("ID=", linkD.linkID).Errorf("Error accept: %s", err.Error())
-			time.Sleep(time.Second * 1)
-			continue
+			log.Errorf("Listen error %s", err.Error())
+			break
 		}
-		log.WithField("link ID=", linkD.linkID).Debug("New client")
-
-		// race condition
-		n.InitLinkActiveWork(linkD, &conn, ((n.LinkStubs[linkD.linkID]).(*LinkStub)).commandCh)
-		delete(n.LinkStubs, linkD.linkID)
-
+		//run accept goroutine
+		go linkControl.Accept(ln)
+		isExiting := linkControl.WaitCommand(ln)
+		if isExiting {
+			break
+		}
 	}
+
+	n.UnregisterLinkControl(&linkControl)
 
 }
 
-func (n *Node) initClientLink(linkD *LinkDesc) {
-
+func (n *Node) initClientLinkControl(linkD *LinkDesc) {
 	log.Debug("InitClientLink")
 }
 
-func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *chan string) {
+/*
+func (n *Node) InitLinkActive(linkD *LinkDesc, conn *net.Conn, node *Node) {
 
 	log.Debug("InitLinkActive")
 
@@ -182,7 +207,7 @@ func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *ch
 		conn:         conn,
 		LinkConf:     linkD,
 		LinkActiveID: linkD.linkID + ":" + (*conn).RemoteAddr().String(),
-		commandCh:    commandCh,
+		commandCh:    make(chan string),
 	}
 
 	h := handlers[linkD.handler].InitHandler(&newActiveLink, n)
@@ -196,22 +221,17 @@ func (n *Node) InitLinkActiveWork(linkD *LinkDesc, conn *net.Conn, commandCh *ch
 
 	//wg.WaitGroup(1)
 	log.Debug("InitLinkActive closing")
-}
-
-func (n *Node) InitLinkActiveStub(linkD *LinkDesc, commandCh *chan string) {
-
-	log.Debug("InitLinkActiveStub")
-
-	newActiveLink := LinkStub{
-		commandCh:    commandCh,
-		LinkActiveID: linkD.linkID + ":" + linkD.address,
-	}
-
-	n.LinkStubs[linkD.linkID] = &newActiveLink
-	log.Debug("InitLinkActiveStub closing")
-
-}
+}*/
 
 func (n *Node) Stop() {
-	log.Debug("Stop(). Not implemented.")
+	log.Debugf("Stop")
+	n.CommandCh <- &NodeCommand{
+		command: "stop",
+	}
+	//TODO: wait with WaitGroup
+	log.Warnf("waiting")
+	for n.hasLinks {
+		time.Sleep(time.Second * time.Duration(1))
+		log.Warnf("waiting")
+	}
 }

@@ -9,7 +9,7 @@ import (
 type HandlerHelloWorldFactory struct {
 }
 
-func (h HandlerHelloWorldFactory) InitHandler(l transport.LinkerActive, n *transport.Node) transport.Handler {
+func (h HandlerHelloWorldFactory) InitHandler(l transport.LinkWriter, n *transport.Node) transport.Handler {
 
 	log.Debugf("InitHandler")
 	handler := &HandlerHelloWorld{
@@ -21,7 +21,7 @@ func (h HandlerHelloWorldFactory) InitHandler(l transport.LinkerActive, n *trans
 
 // HandlerEcho realize Handler interface from transport package
 type HandlerHelloWorld struct {
-	link transport.LinkerActive
+	link transport.LinkWriter
 	node *transport.Node
 }
 
@@ -46,10 +46,10 @@ func (h *HandlerHelloWorld) OnConnect() error {
 // OnWrite implements OnWrote method from Heandler interface
 func (h *HandlerHelloWorld) OnWrite(msg string) {
 
-	log.WithField("ID=", h.link.GetLinkActiveID()).Debugf("OnWrite")
+	log.WithField("ID=", h.link.GetActiveLinkID()).Debugf("OnWrite")
 	err := h.link.Write(msg)
 	if err != nil {
-		log.WithField("ID=", h.link.GetLinkActiveID()).Errorf("Error read: %s", err.Error())
+		log.WithField("ID=", h.link.GetActiveLinkID()).Errorf("Error read: %s", err.Error())
 
 	}
 }

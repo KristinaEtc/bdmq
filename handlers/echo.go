@@ -10,7 +10,7 @@ type HandlerEchoFactory struct {
 
 var EchoFactory *HandlerEchoFactory
 
-func (h HandlerEchoFactory) InitHandler(l transport.LinkerActive, n *transport.Node) transport.Handler {
+func (h HandlerEchoFactory) InitHandler(l transport.LinkWriter, n *transport.Node) transport.Handler {
 
 	log.Debugf("InitHandler")
 	handler := &HandlerEcho{
@@ -22,7 +22,7 @@ func (h HandlerEchoFactory) InitHandler(l transport.LinkerActive, n *transport.N
 
 // HandlerEcho realize Handler interface from transport package
 type HandlerEcho struct {
-	link transport.LinkerActive
+	link transport.LinkWriter
 	node *transport.Node
 }
 
@@ -31,7 +31,7 @@ func (h *HandlerEcho) OnRead(msg string) {
 	log.Debugf("OnRead msg=%s. Resending it.", msg)
 	err := h.link.Write(msg)
 	if err != nil {
-		log.WithField("ID=", h.link.GetLinkActiveID()).Errorf("Error read: %s", err.Error())
+		log.WithField("ID=", h.link.GetActiveLinkID()).Errorf("Error read: %s", err.Error())
 	}
 
 }
@@ -45,10 +45,10 @@ func (h *HandlerEcho) OnConnect() error {
 // OnWrite implements OnWrote method from Heandler interface
 func (h *HandlerEcho) OnWrite(msg string) {
 
-	log.WithField("ID=", h.link.GetLinkActiveID()).Debugf("OnWrite")
+	log.WithField("ID=", h.link.GetActiveLinkID()).Debugf("OnWrite")
 
 	err := h.link.Write(msg)
 	if err != nil {
-		log.WithField("ID=", h.link.GetLinkActiveID()).Errorf("Error read: %s", err.Error())
+		log.WithField("ID=", h.link.GetActiveLinkID()).Errorf("Error read: %s", err.Error())
 	}
 }
