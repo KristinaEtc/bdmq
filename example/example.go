@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KristinaEtc/bdmq1/handlers"
-	"github.com/KristinaEtc/bdmq1/transport"
+	"github.com/KristinaEtc/bdmq/handlers"
+	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
 	"github.com/ventu-io/slf"
 )

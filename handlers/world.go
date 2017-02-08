@@ -46,10 +46,10 @@ func (h *HandlerHelloWorld) OnConnect() error {
 // OnWrite implements OnWrote method from Heandler interface
 func (h *HandlerHelloWorld) OnWrite(msg string) {
 
-	log.WithField("ID=", h.link.GetActiveLinkID()).Debugf("OnWrite")
+	log.WithField("ID=", h.link.Id()).Debugf("OnWrite")
 	err := h.link.Write(msg)
 	if err != nil {
-		log.WithField("ID=", h.link.GetActiveLinkID()).Errorf("Error read: %s", err.Error())
+		log.WithField("ID=", h.link.Id()).Errorf("Error read: %s", err.Error())
 
 	}
 }
