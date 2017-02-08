@@ -3,9 +3,9 @@
   "Links": [
     {
         "LinkID": "ID1",
-        "Address": "localhost:40000",
+        "Address": "localhost:7777",
         "Mode": "server",
-        "Handler": "worldHandler",
+        "Handler": "echoHandler",
         "BufSize": 1024
       }
   ],

@@ -1,6 +1,5 @@
 package main
 
-// do not move
 import _ "github.com/KristinaEtc/slflog"
 
 import (
@@ -8,20 +7,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KristinaEtc/bdmq/handlers"
-	"github.com/KristinaEtc/bdmq/transport"
+	"github.com/KristinaEtc/bdmq1/handlers"
+	"github.com/KristinaEtc/bdmq1/transport"
 	"github.com/KristinaEtc/config"
-	_ "github.com/KristinaEtc/slflog"
 	"github.com/ventu-io/slf"
 )
 
-//	"github.com/KristinaEtc/bdmq/handler"
-//	"github.com/KristinaEtc/bdmq/transport"
+// do not move
 
-var log = slf.WithContext("server-main.go")
+var log = slf.WithContext("main.go")
 
-// Global is a struct for config
-// One Node
 type Global struct {
 	MachineID string
 	Links     []transport.LinkDescFromJSON
@@ -42,33 +37,28 @@ var globalOpt = Global{
 
 func main() {
 
-	config.ReadGlobalConfig(&globalOpt, "server-main.go")
-
+	config.ReadGlobalConfig(&globalOpt, "main.go")
 	log.Debugf("config=%v", globalOpt.Links)
 
-	transport.RegisterHandlerFactory("testHandler", handlers.HandlerTestFactory{})
 	transport.RegisterHandlerFactory("echoHandler", handlers.HandlerEchoFactory{})
-	transport.RegisterHandlerFactory("worldHandler", handlers.HandlerHelloWorldFactory{})
 
 	n := transport.NewNode()
-
 	err := n.InitLinkDesc(globalOpt.Links)
 	if err != nil {
-		log.Errorf("InitLinkDesc err: %s", err.Error())
+		log.Errorf("InitLinkDesc error: %s", err.Error())
+		os.Exit(0)
 	}
 
-	//n.AddLinkDesc([]byte(fmt.Sprintf("%v", globalOpt.Node)))
-	n.Run()
+	err = n.Run()
+	if err != nil {
+		log.Errorf("Run error: %s", err.Error())
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
-
 	for scanner.Scan() {
 		if strings.ToLower(scanner.Text()) == "q" {
 			n.Stop()
-			os.Exit(1)
+			os.Exit(0)
 		}
 	}
-
-	//n.SendMessage("topic1", "my message")
-
 }
