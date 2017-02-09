@@ -8,12 +8,14 @@ import (
 type LinkControlClient struct {
 	linkDesc  *LinkDesc
 	node      *Node
-	commandCh chan string
+	commandCh chan cmdContrlLink
 }
 
 func (lC *LinkControlClient) Close() {
 	log.Info("(lC *LinkControlClient) Close()")
-	lC.commandCh <- "quit"
+	lC.commandCh <- cmdContrlLink{
+		cmd: quitControlLink,
+	}
 }
 
 func (lC *LinkControlClient) Id() string {
@@ -21,7 +23,10 @@ func (lC *LinkControlClient) Id() string {
 }
 
 func (lC *LinkControlClient) NotifyError(err error) {
-	lC.commandCh <- "Error" + err.Error()
+	lC.commandCh <- cmdContrlLink{
+		cmd: errorControlLink,
+		err: "Error" + err.Error(),
+	}
 
 }
 
@@ -58,7 +63,7 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 		case command := <-lC.commandCh:
 			{
 				log.Debugf("func Dial(): got command %s", command)
-				if command == "quit" {
+				if command.cmd == quitControlLink {
 					log.WithField("ID=", lC.linkDesc).Info("Got quit commant. Closing link")
 					return nil, ErrQuitLinkRequested
 				}
@@ -71,8 +76,13 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 func (lC *LinkControlClient) WaitCommand(conn net.Conn) (isExiting bool) {
 	select {
 	case command := <-lC.commandCh:
-		if command == "quit" {
+		if command.cmd == quitControlLink {
 			log.Debug("linkControlClient: quit recieved")
+			conn.Close()
+			return true
+		}
+		if command.cmd == errorControlLink {
+			log.Error(command.err)
 			conn.Close()
 			return true
 		}

@@ -58,7 +58,7 @@ func (n *Node) InitServerLinkControl(lD *LinkDesc) {
 	linkControl := LinkControlServer{
 		linkDesc:  lD,
 		node:      n,
-		commandCh: make(chan string),
+		commandCh: make(chan cmdContrlLink),
 	}
 
 	n.RegisterLinkControl(&linkControl)
@@ -86,7 +86,7 @@ func (n *Node) InitClientLinkControl(lD *LinkDesc) {
 	linkControl := LinkControlClient{
 		linkDesc:  lD,
 		node:      n,
-		commandCh: make(chan string),
+		commandCh: make(chan cmdContrlLink),
 	}
 
 	n.RegisterLinkControl(&linkControl)

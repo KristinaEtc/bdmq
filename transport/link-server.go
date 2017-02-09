@@ -10,12 +10,14 @@ import (
 type LinkControlServer struct {
 	linkDesc  *LinkDesc
 	node      *Node
-	commandCh chan string
+	commandCh chan cmdContrlLink
 }
 
 func (lS *LinkControlServer) Close() {
 	log.Info("(lS *LinkControlServer) Close()")
-	lS.commandCh <- "quit"
+	lS.commandCh <- cmdContrlLink{
+		cmd: quitControlLink,
+	}
 }
 
 func (lS *LinkControlServer) Id() string {
@@ -23,7 +25,10 @@ func (lS *LinkControlServer) Id() string {
 }
 
 func (lS *LinkControlServer) NotifyError(err error) {
-	lS.commandCh <- "Error" + err.Error()
+	lS.commandCh <- cmdContrlLink{
+		cmd: errorControlLink,
+		err: "Error" + err.Error(),
+	}
 
 }
 
@@ -60,8 +65,8 @@ func (lS *LinkControlServer) Listen() (net.Listener, error) {
 
 		case command := <-lS.commandCh:
 			{
-				log.Debugf("func Listen(): got command %s", command)
-				if command == "quit" {
+				log.Debugf("func Listen(): got command %s", command.cmd)
+				if command.cmd == quitControlLink {
 					log.WithField("ID=", lS.linkDesc).Info("Got quit commant. Closing link")
 					return nil, ErrQuitLinkRequested
 				}
@@ -74,8 +79,13 @@ func (lS *LinkControlServer) Listen() (net.Listener, error) {
 func (lS *LinkControlServer) WaitCommand(listener net.Listener) (isExiting bool) {
 	select {
 	case command := <-lS.commandCh:
-		if command == "quit" {
+		if command.cmd == quitControlLink {
 			log.Debug("linkControlServer: quit recieved")
+			listener.Close()
+			return true
+		}
+		if command.cmd == errorControlLink {
+			log.Error(command.err)
 			listener.Close()
 			return true
 		}
@@ -112,7 +122,10 @@ func (lS *LinkControlServer) InitLinkActive(conn net.Conn) {
 
 	if _, ok := handlers[lS.linkDesc.handler]; !ok {
 		log.Error("No handler! Closing linkControl")
-		lS.commandCh <- "quit"
+		lS.commandCh <- cmdContrlLink{
+			cmd: errorControlLink,
+			err: "Error: " + "No handler! Closing linkControl",
+		}
 	}
 	h := handlers[lS.linkDesc.handler].InitHandler(&linkActive, lS.node)
 	linkActive.handler = h

@@ -43,9 +43,32 @@ const (
 func (c commandActiveLink) String() string {
 	switch c {
 	case 0:
-		return "quit"
+		return "quitLinkActive"
 	case 1:
 		return "errorReading"
+	default:
+		return "unknown"
+	}
+}
+
+type cmdContrlLink struct {
+	cmd commandContrlLink
+	err string
+}
+
+type commandContrlLink int
+
+const (
+	quitControlLink commandContrlLink = iota
+	errorControlLink
+)
+
+func (c commandContrlLink) String() string {
+	switch c {
+	case 0:
+		return "quitControlLink"
+	case 1:
+		return "errorControlLink"
 	default:
 		return "unknown"
 	}
