@@ -141,7 +141,7 @@ func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 	}
 }
 
-func (n *Node) sendMessage(activeLinkId string, msg string) {
+func (n *Node) SendMessage(activeLinkId string, msg string) {
 	n.commandCh <- &NodeCommand{
 		cmd: sendMessageNode,
 		msg: msg,

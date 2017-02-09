@@ -51,7 +51,7 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 	var secToRecon = time.Duration(time.Second * 2)
 
 	for {
-		conn, err = net.Dial(lC.linkDesc.address, network)
+		conn, err = net.Dial(network, lC.linkDesc.address)
 		if err == nil {
 			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Established connection with: %s", conn.RemoteAddr().String())
 			lC.InitLinkActive(conn)
@@ -104,4 +104,5 @@ func (lC *LinkControlClient) WaitCommand(conn net.Conn) (isExiting bool) {
 
 func (lC *LinkControlClient) InitLinkActive(conn net.Conn) {
 	log.Debug("func InitLinkActive (client)")
+	initLinkActive(lC, conn)
 }
