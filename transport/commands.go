@@ -14,15 +14,18 @@ func (c commandNode) String() string {
 		return "unregisterActive"
 	case 4:
 		return "stop"
+	case 5:
+		return "sendMessage"
 	default:
 		return "unknown"
 	}
 }
 
 type NodeCommand struct {
-	command commandNode
-	ctrl    LinkControl
-	active  *LinkActive
+	cmd    commandNode
+	ctrl   LinkControl
+	active *LinkActive
+	msg    string
 }
 
 const (
@@ -31,13 +34,21 @@ const (
 	registerActive
 	unregisterActive
 	stopNode
+	sendMessageNode
 )
+
+type cmdActiveLink struct {
+	cmd commandActiveLink
+	msg string
+	err string
+}
 
 type commandActiveLink int
 
 const (
 	quitLinkActive commandActiveLink = iota
-	errorReading
+	errorReadingActive
+	sendMessageActive
 )
 
 func (c commandActiveLink) String() string {
@@ -45,7 +56,9 @@ func (c commandActiveLink) String() string {
 	case 0:
 		return "quitLinkActive"
 	case 1:
-		return "errorReading"
+		return "errorReadingActive"
+	case 2:
+		return "sendMessage"
 	default:
 		return "unknown"
 	}

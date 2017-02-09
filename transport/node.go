@@ -45,7 +45,6 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 			mode:    l.Mode,
 			handler: l.Handler,
 		}
-
 		n.LinkDescs[l.LinkID] = lDesc
 	}
 
@@ -111,16 +110,16 @@ func (n *Node) RegisterLinkControl(lControl LinkControl) {
 
 	log.Debug("func RegisterLinkControl()")
 	n.commandCh <- &NodeCommand{
-		command: registerControl,
-		ctrl:    lControl,
+		cmd:  registerControl,
+		ctrl: lControl,
 	}
 }
 
 func (n *Node) RegisterLinkActive(lActive *LinkActive) {
 	log.Debug("func RegisterLinkActive()")
 	n.commandCh <- &NodeCommand{
-		command: registerActive,
-		active:  lActive,
+		cmd:    registerActive,
+		active: lActive,
 	}
 }
 
@@ -128,8 +127,8 @@ func (n *Node) UnregisterLinkControl(lControl LinkControl) {
 
 	log.Debug("func UnregisterLinkControl()")
 	n.commandCh <- &NodeCommand{
-		command: unregisterControl,
-		ctrl:    lControl,
+		cmd:  unregisterControl,
+		ctrl: lControl,
 	}
 }
 
@@ -137,54 +136,77 @@ func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 
 	log.Debug("func UnregisterLinkActive()")
 	n.commandCh <- &NodeCommand{
-		command: unregisterActive,
-		active:  lActive,
+		cmd:    unregisterActive,
+		active: lActive,
 	}
 }
 
-func (n *Node) processCommand(cmd *NodeCommand) (isExiting bool) {
-	log.Debugf("process command=%s", cmd.command.String())
-	switch cmd.command {
+func (n *Node) sendMessage(activeLinkId string, msg string) {
+	n.commandCh <- &NodeCommand{
+		cmd: sendMessageNode,
+		msg: msg,
+	}
+}
+
+func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
+	log.Debugf("process command=%s", cmdMsg.cmd.String())
+	switch cmdMsg.cmd {
 	case registerActive:
 		{
-			n.LinkActives[cmd.active.Id()] = cmd.active
+			n.LinkActives[cmdMsg.active.Id()] = cmdMsg.active
 			n.hasActiveLinks = len(n.LinkActives) > 0
 			return false
 		}
 	case unregisterActive:
 		{
-			delete(n.LinkActives, cmd.active.Id())
+			delete(n.LinkActives, cmdMsg.active.Id())
 			n.hasActiveLinks = len(n.LinkControls) > 0
 			return !(n.hasLinks && n.hasActiveLinks)
 		}
 	case registerControl:
 		{
-			n.LinkControls[cmd.ctrl.Id()] = cmd.ctrl
+			n.LinkControls[cmdMsg.ctrl.getId()] = cmdMsg.ctrl
 			n.hasLinks = len(n.LinkControls) > 0
 			return false
 		}
 	case unregisterControl:
 		{
-			delete(n.LinkControls, cmd.ctrl.Id())
+			delete(n.LinkControls, cmdMsg.ctrl.getId())
 			n.hasLinks = len(n.LinkControls) > 0
 			return !(n.hasLinks && n.hasActiveLinks)
 		}
 	case stopNode:
 		{
 			log.Infof("Stop received")
-			for linkID, lA := range n.LinkActives {
-				log.Debugf("Send close to %s", linkID)
-				lA.Close()
+			if len(n.LinkActives) > 0 {
+				for linkID, lA := range n.LinkActives {
+					log.Debugf("Send close to %s", linkID)
+					lA.Close()
+				}
 			}
-			for linkID, lC := range n.LinkControls {
-				log.Debugf("Send close to %s", linkID)
-				lC.Close()
+			if len(n.LinkControls) > 0 {
+				for linkID, lC := range n.LinkControls {
+					log.Debugf("Send close to %s", linkID)
+					lC.Close()
+				}
 			}
+			return false
+		}
+	case sendMessageNode:
+		{
+			if len(n.LinkActives) > 0 {
+				for _, lA := range n.LinkActives {
+					log.Debug("for testing i'm choosing the 1th of active links")
+					lA.SendMessage(cmdMsg.msg)
+					return false
+				}
+			}
+			log.Debug("SendMessage: no active links")
 			return false
 		}
 	default:
 		{
-			log.Warnf("Unknown command: %s", cmd)
+			log.Warnf("Unknown command: %s", cmdMsg.cmd)
 			return false
 		}
 	}
@@ -235,7 +257,7 @@ func (n *Node) Run() error {
 func (n *Node) Stop() {
 	log.Debug("func Stop()")
 	n.commandCh <- &NodeCommand{
-		command: stopNode,
+		cmd: stopNode,
 	}
 
 	//TODO: wait with WaitGroup()

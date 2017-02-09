@@ -13,15 +13,27 @@ type LinkControlServer struct {
 	commandCh chan cmdContrlLink
 }
 
+func (lS *LinkControlServer) getId() string {
+	return (lS.linkDesc).linkID
+}
+
+func (lS *LinkControlServer) getChannel() chan cmdContrlLink {
+	return lS.commandCh
+}
+
+func (lS *LinkControlServer) getLinkDesc() *LinkDesc {
+	return lS.linkDesc
+}
+
+func (lS *LinkControlServer) getNode() *Node {
+	return lS.node
+}
+
 func (lS *LinkControlServer) Close() {
 	log.Info("(lS *LinkControlServer) Close()")
 	lS.commandCh <- cmdContrlLink{
 		cmd: quitControlLink,
 	}
-}
-
-func (lS *LinkControlServer) Id() string {
-	return (lS.linkDesc).linkID
 }
 
 func (lS *LinkControlServer) NotifyError(err error) {
@@ -109,38 +121,7 @@ func (lS *LinkControlServer) Accept(ln net.Listener) {
 }
 
 func (lS *LinkControlServer) InitLinkActive(conn net.Conn) {
-	log.Debug("func InitLinkActive")
+	log.Debug("func InitLinkActive (server)")
+	initLinkActive(lS, conn)
 
-	linkActive := LinkActive{
-		conn:         conn,
-		linkDesc:     lS.linkDesc,
-		LinkActiveID: lS.linkDesc.linkID + ":" + conn.RemoteAddr().String(),
-		commandCh:    make(chan commandActiveLink),
-	}
-
-	log.Debug(lS.linkDesc.handler)
-
-	if _, ok := handlers[lS.linkDesc.handler]; !ok {
-		log.Error("No handler! Closing linkControl")
-		lS.commandCh <- cmdContrlLink{
-			cmd: errorControlLink,
-			err: "Error: " + "No handler! Closing linkControl",
-		}
-	}
-	h := handlers[lS.linkDesc.handler].InitHandler(&linkActive, lS.node)
-	linkActive.handler = h
-
-	lS.node.RegisterLinkActive(&linkActive)
-
-	for {
-		linkActive.handler.OnConnect()
-		//linkActive.handler.Read()
-		go linkActive.Read()
-		isExiting := linkActive.WaitCommand(conn)
-		if isExiting {
-			break
-		}
-	}
-
-	lS.node.UnregisterLinkActive(&linkActive)
 }

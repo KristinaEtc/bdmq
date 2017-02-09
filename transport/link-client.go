@@ -18,8 +18,20 @@ func (lC *LinkControlClient) Close() {
 	}
 }
 
-func (lC *LinkControlClient) Id() string {
+func (lC *LinkControlClient) getId() string {
 	return lC.linkDesc.linkID
+}
+
+func (lC *LinkControlClient) getChannel() chan cmdContrlLink {
+	return lC.commandCh
+}
+
+func (lC *LinkControlClient) getLinkDesc() *LinkDesc {
+	return lC.linkDesc
+}
+
+func (lC *LinkControlClient) getNode() *Node {
+	return lC.node
 }
 
 func (lC *LinkControlClient) NotifyError(err error) {
@@ -27,7 +39,6 @@ func (lC *LinkControlClient) NotifyError(err error) {
 		cmd: errorControlLink,
 		err: "Error" + err.Error(),
 	}
-
 }
 
 func (lC *LinkControlClient) Dial() (net.Conn, error) {
@@ -43,6 +54,7 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 		conn, err = net.Dial(lC.linkDesc.address, network)
 		if err == nil {
 			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Established connection with: %s", conn.RemoteAddr().String())
+			lC.InitLinkActive(conn)
 			return conn, nil
 		}
 		log.WithField("ID=", lC.linkDesc.linkID).Errorf("Error dial: %s. Reconnecting after %d milliseconds", err.Error(), secToRecon/1000000.0)
@@ -88,4 +100,8 @@ func (lC *LinkControlClient) WaitCommand(conn net.Conn) (isExiting bool) {
 		}
 		return false
 	}
+}
+
+func (lC *LinkControlClient) InitLinkActive(conn net.Conn) {
+	log.Debug("func InitLinkActive (client)")
 }

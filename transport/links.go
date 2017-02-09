@@ -2,6 +2,7 @@ package transport
 
 import (
 	"math/rand"
+	"net"
 	"time"
 )
 
@@ -20,6 +21,51 @@ type LinkWriter interface {
 }
 
 type LinkControl interface {
+	InitLinkActive(net.Conn)
 	Close()
-	Id() string
+	getId() string
+	getLinkDesc() *LinkDesc
+	getChannel() chan cmdContrlLink
+	getNode() *Node
+}
+
+func initLinkActive(lCntl LinkControl, conn net.Conn) {
+
+	linkActive := LinkActive{
+		conn:         conn,
+		linkDesc:     lCntl.getLinkDesc(),
+		LinkActiveID: lCntl.getId() + ":" + conn.RemoteAddr().String(),
+		commandCh:    make(chan cmdActiveLink),
+	}
+
+	log.Debug(lCntl.getLinkDesc().handler)
+
+	ch := lCntl.getChannel()
+
+	if _, ok := handlers[lCntl.getLinkDesc().handler]; !ok {
+		log.Error("No handler! Closing linkControl")
+		ch <- cmdContrlLink{
+			cmd: errorControlLink,
+			err: "Error: " + "No handler! Closing linkControl",
+		}
+	}
+
+	node := lCntl.getNode()
+	h := handlers[lCntl.getLinkDesc().handler].InitHandler(&linkActive, node)
+	linkActive.handler = h
+
+	node.RegisterLinkActive(&linkActive)
+
+	for {
+		linkActive.handler.OnConnect()
+		//linkActive.handler.Read()
+		go linkActive.Read()
+		isExiting := linkActive.WaitCommand(conn)
+		if isExiting {
+			break
+		}
+	}
+
+	node.UnregisterLinkActive(&linkActive)
+
 }
