@@ -13,7 +13,8 @@ type LinkActive struct {
 	LinkActiveID string
 	handler      Handler
 	//parser       *parser.Parser
-	commandCh chan cmdActiveLink
+	commandCh   chan cmdActiveLink
+	linkControl LinkControl
 }
 
 func (lA *LinkActive) Id() string {
@@ -34,28 +35,27 @@ func (lA *LinkActive) SendMessage(msg string) {
 	}
 }
 
-func (lA *LinkActive) WaitCommand(conn net.Conn) (isExiting bool) {
-	select {
-	case command := <-lA.commandCh:
-		{
-			log.Debugf("got command=%s", command.cmd.String())
-			if command.cmd == quitLinkActive {
-				conn.Close()
-				return true
-			}
-			if command.cmd == errorReadingActive {
-				if lA.linkDesc.mode == "server" {
+func (lA *LinkActive) WaitCommand(conn net.Conn) {
+	for {
+		select {
+		case command := <-lA.commandCh:
+			{
+				log.Debugf("got command=%s", command.cmd.String())
+				if command.cmd == quitLinkActive {
 					conn.Close()
-					return true
+					return
+				}
+				/*if command.cmd == errorReadingActive {
+					conn.Close()
+					return
+					//lA.linkControl.NotifyError(errors.New("Error reading active "))
+				}*/
+				if command.cmd == sendMessageActive {
+					lA.handler.OnWrite(command.msg)
 				}
 			}
-			if command.cmd == sendMessageActive {
-				lA.handler.OnWrite(command.msg)
-			}
-
 		}
 	}
-	return false
 }
 
 func (lA *LinkActive) Write(msg string) error {
@@ -75,13 +75,11 @@ func (lA *LinkActive) Read() {
 		message, err := bufio.NewReader(lA.conn).ReadBytes('\n')
 		if err != nil {
 			log.WithField("ID=", lA.LinkActiveID).Errorf("Error read: %s", err.Error())
-			lA.commandCh <- cmdActiveLink{
-				cmd: errorReadingActive,
-				err: err.Error(),
-			}
+			lA.linkControl.NotifyError(err)
+			log.Warn("exiting")
 			return
 		}
 		log.WithField("ID=", lA.LinkActiveID).Debugf("Message Received: %s", string(message))
-		go lA.handler.OnRead(string(message))
+		lA.handler.OnRead(string(message))
 	}
 }

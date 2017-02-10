@@ -19,8 +19,8 @@ type Node struct {
 	LinkActives    map[string]*LinkActive
 	LinkControls   map[string]LinkControl
 	commandCh      chan *NodeCommand
-	hasLinks       bool
-	hasActiveLinks bool
+	hasLinks       int
+	hasActiveLinks int
 }
 
 func NewNode() (n *Node) {
@@ -91,15 +91,20 @@ func (n *Node) InitClientLinkControl(lD *LinkDesc) {
 	n.RegisterLinkControl(&linkControl)
 
 	for {
-		conn, err := linkControl.Dial()
+		ln, err := linkControl.Dial()
 		if err != nil {
 			log.Errorf("Dial error: %s", err.Error())
 			break
 		}
-		isExiting := linkControl.WaitCommand(conn)
+
+		go linkControl.InitLinkActive(ln)
+		isExiting := linkControl.WaitCommand()
 		if isExiting {
+			log.Debug("isExiting client")
 			break
 		}
+		log.Debug("reconnect")
+
 	}
 	n.UnregisterLinkControl(&linkControl)
 
@@ -154,26 +159,56 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 	case registerActive:
 		{
 			n.LinkActives[cmdMsg.active.Id()] = cmdMsg.active
-			n.hasActiveLinks = len(n.LinkActives) > 0
+			//n.hasActiveLinks = len(n.LinkActives) > 0
+			n.hasActiveLinks++
+			log.Debugf("[registerActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
 			return false
 		}
 	case unregisterActive:
 		{
+			if len(n.LinkActives) > 0 {
+				for _, lA := range n.LinkActives {
+					log.Debugf("%s", lA.Id())
+					//return false
+				}
+			} else {
+				log.Debug("NIL")
+			}
+
 			delete(n.LinkActives, cmdMsg.active.Id())
-			n.hasActiveLinks = len(n.LinkControls) > 0
-			return !(n.hasLinks && n.hasActiveLinks)
+			if n.hasActiveLinks != 0 {
+				n.hasActiveLinks--
+			} else {
+				log.Debug("h.hasActiveLinks<0")
+			}
+			log.Debugf("[unregisterActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
+
+			return n.hasActiveLinks != 0 && n.hasLinks != 0
+
+			//n.hasActiveLinks = len(n.LinkActives) > 0
+			//return !(n.hasLinks || n.hasActiveLinks)
+			//return false
 		}
 	case registerControl:
 		{
 			n.LinkControls[cmdMsg.ctrl.getId()] = cmdMsg.ctrl
-			n.hasLinks = len(n.LinkControls) > 0
+			//n.hasLinks = len(n.LinkControls) > 0
+			n.hasLinks++
+			log.Debugf("[registerControl] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
 			return false
 		}
 	case unregisterControl:
 		{
 			delete(n.LinkControls, cmdMsg.ctrl.getId())
-			n.hasLinks = len(n.LinkControls) > 0
-			return !(n.hasLinks && n.hasActiveLinks)
+			//	n.hasLinks = len(n.LinkControls) > 0
+			//	return !(n.hasLinks || n.hasActiveLinks)
+			if n.hasLinks != 0 {
+				n.hasLinks--
+			} else {
+				log.Debug("h.hasLinks = 0!!")
+			}
+			log.Debugf("[unregisterControl] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
+			return n.hasActiveLinks != 0 && n.hasLinks != 0
 		}
 	case stopNode:
 		{
@@ -256,18 +291,21 @@ func (n *Node) Run() error {
 
 func (n *Node) Stop() {
 	log.Debug("func Stop()")
+
+	//todo: add checking if channel is exist
 	n.commandCh <- &NodeCommand{
 		cmd: stopNode,
 	}
 
 	//TODO: wait with WaitGroup()
 	log.Warn("Waiting")
-	for n.hasLinks && n.hasActiveLinks {
-		if n.hasActiveLinks {
-			log.Debug("hasActive")
+	log.Debugf("hasLinks=%d, hasActive=%d", n.hasLinks, n.hasActiveLinks)
+	for n.hasLinks != 0 || n.hasActiveLinks != 0 {
+		if n.hasActiveLinks != 0 {
+			log.Debugf("hasActive=%d", n.hasActiveLinks)
 		}
-		if n.hasLinks {
-			log.Debug("hasLinks")
+		if n.hasLinks != 0 {
+			log.Debugf("hasLinks=%d", n.hasLinks)
 		}
 		time.Sleep(time.Second * time.Duration(1))
 		log.Warnf("waiting")

@@ -23,10 +23,12 @@ type LinkWriter interface {
 type LinkControl interface {
 	InitLinkActive(net.Conn)
 	Close()
+	NotifyError(error)
 	getId() string
 	getLinkDesc() *LinkDesc
 	getChannel() chan cmdContrlLink
 	getNode() *Node
+	//	NotifyErrorFromActive(error)
 }
 
 func initLinkActive(lCntl LinkControl, conn net.Conn) {
@@ -36,6 +38,7 @@ func initLinkActive(lCntl LinkControl, conn net.Conn) {
 		linkDesc:     lCntl.getLinkDesc(),
 		LinkActiveID: lCntl.getId() + ":" + conn.RemoteAddr().String(),
 		commandCh:    make(chan cmdActiveLink),
+		linkControl:  lCntl,
 	}
 
 	log.Debug(lCntl.getLinkDesc().handler)
@@ -56,16 +59,11 @@ func initLinkActive(lCntl LinkControl, conn net.Conn) {
 
 	node.RegisterLinkActive(&linkActive)
 
-	for {
-		linkActive.handler.OnConnect()
-		//linkActive.handler.Read()
-		go linkActive.Read()
-		isExiting := linkActive.WaitCommand(conn)
-		if isExiting {
-			break
-		}
-	}
+	go linkActive.WaitCommand(conn)
+	linkActive.handler.OnConnect()
+	linkActive.Read()
+	log.Debug("initLinkActive exiting")
+	//linkActive.handler.OnDisconnect()
 
 	node.UnregisterLinkActive(&linkActive)
-
 }

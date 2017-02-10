@@ -3,8 +3,6 @@ package transport
 import (
 	"net"
 	"time"
-
-	//"github.com/KristinaEtc/bdmq1/transport"
 )
 
 type LinkControlServer struct {
@@ -41,8 +39,17 @@ func (lS *LinkControlServer) NotifyError(err error) {
 		cmd: errorControlLink,
 		err: "Error" + err.Error(),
 	}
-
 }
+
+/*
+func (lS *LinkControlServer) NotifyErrorFromActive(err error) {
+	/*lS.commandCh <- cmdContrlLink{
+		cmd: errorControlLink,
+		err: "Error" + err.Error(),
+	}
+	log.Error(err.Error())
+}
+*/
 
 func (lS *LinkControlServer) Listen() (net.Listener, error) {
 	log.Debug("func Listen()")
@@ -99,10 +106,10 @@ func (lS *LinkControlServer) WaitCommand(listener net.Listener) (isExiting bool)
 		if command.cmd == errorControlLink {
 			log.Error(command.err)
 			listener.Close()
-			return true
+			return false
 		}
-		return false
 	}
+	return false
 }
 
 func (lS *LinkControlServer) Accept(ln net.Listener) {

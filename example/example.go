@@ -10,6 +10,7 @@ import (
 	"github.com/KristinaEtc/bdmq/handlers"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
+
 	"github.com/ventu-io/slf"
 )
 
@@ -58,7 +59,9 @@ func main() {
 	for scanner.Scan() {
 		if strings.ToLower(scanner.Text()) == "q" {
 			n.Stop()
-			os.Exit(0)
+			//time.Sleep(time.Second * 5)
+			break
+			//os.Exit(0)
 		}
 	}
 }

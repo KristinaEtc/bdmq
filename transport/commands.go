@@ -74,6 +74,8 @@ type commandContrlLink int
 const (
 	quitControlLink commandContrlLink = iota
 	errorControlLink
+
+//	errorFromActiveLink
 )
 
 func (c commandContrlLink) String() string {
@@ -82,6 +84,8 @@ func (c commandContrlLink) String() string {
 		return "quitControlLink"
 	case 1:
 		return "errorControlLink"
+	//case 2:
+	//		return "errorFromActiveLink"
 	default:
 		return "unknown"
 	}

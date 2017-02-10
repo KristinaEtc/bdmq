@@ -9,13 +9,7 @@ type LinkControlClient struct {
 	linkDesc  *LinkDesc
 	node      *Node
 	commandCh chan cmdContrlLink
-}
-
-func (lC *LinkControlClient) Close() {
-	log.Info("(lC *LinkControlClient) Close()")
-	lC.commandCh <- cmdContrlLink{
-		cmd: quitControlLink,
-	}
+	conn      net.Conn
 }
 
 func (lC *LinkControlClient) getId() string {
@@ -34,12 +28,28 @@ func (lC *LinkControlClient) getNode() *Node {
 	return lC.node
 }
 
+func (lC *LinkControlClient) Close() {
+	log.Info("(lC *LinkControlClient) Close()")
+	lC.commandCh <- cmdContrlLink{
+		cmd: quitControlLink,
+	}
+}
+
 func (lC *LinkControlClient) NotifyError(err error) {
 	lC.commandCh <- cmdContrlLink{
 		cmd: errorControlLink,
 		err: "Error" + err.Error(),
 	}
 }
+
+/*
+func (lC *LinkControlClient) NotifyErrorFromActive(err error) {
+	lC.commandCh <- cmdContrlLink{
+		cmd: errorFromActiveLink,
+		err: "Error" + err.Error(),
+	}
+}
+*/
 
 func (lC *LinkControlClient) Dial() (net.Conn, error) {
 	log.Debug("func Dial()")
@@ -54,7 +64,7 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 		conn, err = net.Dial(network, lC.linkDesc.address)
 		if err == nil {
 			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Established connection with: %s", conn.RemoteAddr().String())
-			lC.InitLinkActive(conn)
+			//lC.InitLinkActive(conn)
 			return conn, nil
 		}
 		log.WithField("ID=", lC.linkDesc.linkID).Errorf("Error dial: %s. Reconnecting after %d milliseconds", err.Error(), secToRecon/1000000.0)
@@ -77,7 +87,8 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 				log.Debugf("func Dial(): got command %s", command)
 				if command.cmd == quitControlLink {
 					log.WithField("ID=", lC.linkDesc).Info("Got quit commant. Closing link")
-					return nil, ErrQuitLinkRequested
+					//return nil, ErrQuitLinkRequested
+					return nil, err
 				}
 				log.WithField("ID=", lC.linkDesc.linkID).Warnf("Got impermissible command %s. Ignored.", command)
 			}
@@ -85,24 +96,32 @@ func (lC *LinkControlClient) Dial() (net.Conn, error) {
 	}
 }
 
-func (lC *LinkControlClient) WaitCommand(conn net.Conn) (isExiting bool) {
+func (lC *LinkControlClient) WaitCommand() (isExiting bool) {
+
 	select {
 	case command := <-lC.commandCh:
+		conn := lC.conn
 		if command.cmd == quitControlLink {
-			log.Debug("linkControlClient: quit recieved")
-			conn.Close()
+			log.Debug("linkControlClient: quit received")
+			if conn != nil {
+				conn.Close()
+			}
 			return true
 		}
 		if command.cmd == errorControlLink {
-			log.Error(command.err)
-			conn.Close()
-			return true
+			log.Errorf("Error: %s", command.err)
+			/*if conn != nil {
+				conn.Close()
+			}*/
+			return false
 		}
-		return false
 	}
+	log.Debug("linkControlClient: received something weird")
+	return false
 }
 
 func (lC *LinkControlClient) InitLinkActive(conn net.Conn) {
 	log.Debug("func InitLinkActive (client)")
 	initLinkActive(lC, conn)
+
 }
