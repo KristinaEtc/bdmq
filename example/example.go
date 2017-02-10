@@ -42,6 +42,7 @@ func main() {
 	log.Debugf("config=%v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("echoHandler", handlers.HandlerEchoFactory{})
+	transport.RegisterHandlerFactory("testHandler", handlers.HandlerTestFactory{})
 
 	n := transport.NewNode()
 	err := n.InitLinkDesc(globalOpt.Links)
@@ -62,6 +63,8 @@ func main() {
 			//time.Sleep(time.Second * 5)
 			break
 			//os.Exit(0)
+		} else {
+			n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
 		}
 	}
 }

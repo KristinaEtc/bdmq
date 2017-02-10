@@ -84,7 +84,7 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 		linkControl.WorkServer()
 	}
 
-	log.Debug("func InitServerLinkControl() closing")
+	log.Debug("func InitLinkControl() closing")
 }
 
 func (n *Node) RegisterLinkControl(lControl LinkControl) {
@@ -207,9 +207,9 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		{
 			if len(n.LinkActives) > 0 {
 				for _, lA := range n.LinkActives {
-					log.Debug("for testing i'm choosing the 1th of active links")
+					log.Debug("for testing i'm choosing all active links")
 					lA.SendMessage(cmdMsg.msg)
-					return false
+					//return false
 				}
 			}
 			log.Debug("SendMessage: no active links")
@@ -228,8 +228,8 @@ func (n *Node) MainLoop() {
 
 	for {
 		cmd := <-n.commandCh
-		isExitisng := n.processCommand(cmd)
-		if isExitisng {
+		isExiting := n.processCommand(cmd)
+		if isExiting {
 			break
 		}
 	}

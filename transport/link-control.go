@@ -11,6 +11,7 @@ type LinkControl struct {
 	linkDesc  *LinkDesc
 	node      *Node
 	commandCh chan cmdContrlLink
+	isExiting bool
 	//conn      net.Conn
 }
 
@@ -89,6 +90,9 @@ func (lC *LinkControl) Listen() (net.Listener, error) {
 	var numOfRecon = 0
 
 	for {
+		if lC.isExiting {
+			return nil, fmt.Errorf("exiting")
+		}
 		ln, err = net.Listen(network, lC.linkDesc.address)
 		if err == nil {
 			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Created listener with: %s", ln.Addr().String())
@@ -114,6 +118,7 @@ func (lC *LinkControl) Listen() (net.Listener, error) {
 			{
 				log.Debugf("func Listen(): got command %s", command.cmd)
 				if command.cmd == quitControlLink {
+					lC.isExiting = true
 					log.WithField("ID=", lC.linkDesc).Info("Got quit commant. Closing link")
 					return nil, ErrQuitLinkRequested
 				}
@@ -147,6 +152,9 @@ func (lC *LinkControl) Dial() (net.Conn, error) {
 	var secToRecon = time.Duration(time.Second * 2)
 
 	for {
+		if lC.isExiting {
+			return nil, fmt.Errorf("exiting")
+		}
 		conn, err = net.Dial(network, lC.linkDesc.address)
 		if err == nil {
 			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Established connection with: %s", conn.RemoteAddr().String())
@@ -172,6 +180,7 @@ func (lC *LinkControl) Dial() (net.Conn, error) {
 			{
 				log.Debugf("func Dial(): got command %s", command)
 				if command.cmd == quitControlLink {
+					lC.isExiting = true
 					log.WithField("ID=", lC.linkDesc).Info("Got quit commant. Closing link")
 					//return nil, ErrQuitLinkRequested
 					return nil, err
@@ -188,6 +197,7 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 		case command := <-lC.commandCh:
 			if command.cmd == quitControlLink {
 				log.Debug("linkControl: quit received")
+				lC.isExiting = true
 				conn.Close()
 				lC.WaitExit()
 
@@ -228,6 +238,7 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 	case command := <-lC.commandCh:
 		if command.cmd == quitControlLink {
 			log.Debugf("linkControl: quit received %s", lC.getId())
+			lC.isExiting = true
 			conn.Close()
 			lC.WaitExit()
 			return true
@@ -296,7 +307,7 @@ func (lC *LinkControl) WorkClient() {
 			log.Debug("isExiting client")
 			break
 		}
-		log.Debug("reconnect")
+		log.Debugf("reconnect %s", lC.getId())
 
 	}
 
