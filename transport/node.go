@@ -1,9 +1,7 @@
 package transport
 
-import (
-	"strings"
-	"time"
-)
+import "time"
+import "fmt"
 
 type LinkDesc struct {
 	linkID  string
@@ -33,6 +31,16 @@ func NewNode() (n *Node) {
 	return
 }
 
+func checkLinkMode(mode string) (int, error) {
+	switch mode {
+	case "client":
+		return 0, nil
+	case "server":
+		return 1, nil
+	}
+	return 2, fmt.Errorf("Wrong link mode: %s", mode)
+}
+
 func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 
 	log.Debug("func InitLinkDesc()")
@@ -51,38 +59,31 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 	return nil
 }
 
-func (n *Node) InitServerLinkControl(lD *LinkDesc) {
-	log.Debug("func InitServerLinkControl()")
+func (n *Node) InitLinkControl(lD *LinkDesc) {
+	log.Debug("func InitLinkControl()")
 
-	linkControl := LinkControlServer{
+	linkControl := LinkControl{
 		linkDesc:  lD,
 		node:      n,
 		commandCh: make(chan cmdContrlLink),
 	}
 
-	n.RegisterLinkControl(&linkControl)
-	defer n.UnregisterLinkControl(&linkControl)
+	mode, err := checkLinkMode(lD.mode)
+	if err != nil {
+		log.Error(err.Error())
+	}
 
-	linkControl.Work()
+	n.RegisterLinkControl(linkControl)
+	defer n.UnregisterLinkControl(linkControl)
+
+	switch mode {
+	case 0:
+		linkControl.WorkClient()
+	case 1:
+		linkControl.WorkServer()
+	}
 
 	log.Debug("func InitServerLinkControl() closing")
-}
-
-func (n *Node) InitClientLinkControl(lD *LinkDesc) {
-	log.Debug("func InitClientLinkControl()")
-
-	linkControl := LinkControlClient{
-		linkDesc:  lD,
-		node:      n,
-		commandCh: make(chan cmdContrlLink),
-	}
-
-	n.RegisterLinkControl(&linkControl)
-	defer n.UnregisterLinkControl(&linkControl)
-
-	linkControl.Work()
-
-	log.Debug("func InitClientLinkControl() closing")
 }
 
 func (n *Node) RegisterLinkControl(lControl LinkControl) {
@@ -157,7 +158,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 			}
 			log.Debugf("[unregisterActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
 
-			return n.hasActiveLinks != 0 && n.hasLinks != 0
+			return n.hasActiveLinks == 0 && n.hasLinks == 0
 
 			//n.hasActiveLinks = len(n.LinkActives) > 0
 			//return !(n.hasLinks || n.hasActiveLinks)
@@ -246,17 +247,7 @@ func (n *Node) Run() error {
 	go n.MainLoop()
 
 	for _, lD := range n.LinkDescs {
-		switch strings.ToLower(lD.mode) {
-		case "client":
-
-			go n.InitClientLinkControl(lD)
-
-		case "server":
-			go n.InitServerLinkControl(lD)
-
-		default:
-			log.Errorf("Wrong link mode: %s; ignored.", lD.mode)
-		}
+		go n.InitLinkControl(lD)
 	}
 
 	log.Debug("func Run() closing")

@@ -75,7 +75,7 @@ func (lA *LinkActive) Read() {
 		message, err := bufio.NewReader(lA.conn).ReadBytes('\n')
 		if err != nil {
 			log.WithField("ID=", lA.LinkActiveID).Errorf("Error read: %s", err.Error())
-			lA.linkControl.NotifyError(err)
+			lA.linkControl.NotifyErrorRead(err)
 			log.Warn("exiting")
 			return
 		}
