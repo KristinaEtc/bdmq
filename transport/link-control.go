@@ -266,14 +266,16 @@ func initLinkActive(lCntl *LinkControl, conn net.Conn) {
 
 	log.Debug(lCntl.getLinkDesc().handler)
 
-	if _, ok := handlers[lCntl.getLinkDesc().handler]; !ok {
+	hFactory, ok := handlers[lCntl.getLinkDesc().handler]
+	if !ok {
 		log.Error("No handler! Closing linkControl")
 		conn.Close()
 		lCntl.NotifyErrorRead(fmt.Errorf("Error: " + "No handler! Closing linkControl"))
+		return
 	}
 
 	node := lCntl.getNode()
-	h := handlers[lCntl.getLinkDesc().handler].InitHandler(&linkActive, node)
+	h := hFactory.InitHandler(&linkActive, node)
 	linkActive.handler = h
 
 	node.RegisterLinkActive(&linkActive)
