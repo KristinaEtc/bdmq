@@ -125,3 +125,23 @@ func (lC *LinkControlClient) InitLinkActive(conn net.Conn) {
 	initLinkActive(lC, conn)
 
 }
+
+func (lC *LinkControlClient) Work() {
+
+	for {
+		ln, err := lC.Dial()
+		if err != nil {
+			log.Errorf("Dial error: %s", err.Error())
+			break
+		}
+
+		go lC.InitLinkActive(ln)
+		isExiting := lC.WaitCommand()
+		if isExiting {
+			log.Debug("isExiting client")
+			break
+		}
+		log.Debug("reconnect")
+
+	}
+}

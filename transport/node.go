@@ -61,20 +61,9 @@ func (n *Node) InitServerLinkControl(lD *LinkDesc) {
 	}
 
 	n.RegisterLinkControl(&linkControl)
+	defer n.UnregisterLinkControl(&linkControl)
 
-	for {
-		ln, err := linkControl.Listen()
-		if err != nil {
-			log.Errorf("Listen error: %s", err.Error())
-			break
-		}
-		go linkControl.Accept(ln)
-		isExiting := linkControl.WaitCommand(ln)
-		if isExiting {
-			break
-		}
-	}
-	n.UnregisterLinkControl(&linkControl)
+	linkControl.Work()
 
 	log.Debug("func InitServerLinkControl() closing")
 }
@@ -89,24 +78,9 @@ func (n *Node) InitClientLinkControl(lD *LinkDesc) {
 	}
 
 	n.RegisterLinkControl(&linkControl)
+	defer n.UnregisterLinkControl(&linkControl)
 
-	for {
-		ln, err := linkControl.Dial()
-		if err != nil {
-			log.Errorf("Dial error: %s", err.Error())
-			break
-		}
-
-		go linkControl.InitLinkActive(ln)
-		isExiting := linkControl.WaitCommand()
-		if isExiting {
-			log.Debug("isExiting client")
-			break
-		}
-		log.Debug("reconnect")
-
-	}
-	n.UnregisterLinkControl(&linkControl)
+	linkControl.Work()
 
 	log.Debug("func InitClientLinkControl() closing")
 }
@@ -274,6 +248,7 @@ func (n *Node) Run() error {
 	for _, lD := range n.LinkDescs {
 		switch strings.ToLower(lD.mode) {
 		case "client":
+
 			go n.InitClientLinkControl(lD)
 
 		case "server":

@@ -130,5 +130,21 @@ func (lS *LinkControlServer) Accept(ln net.Listener) {
 func (lS *LinkControlServer) InitLinkActive(conn net.Conn) {
 	log.Debug("func InitLinkActive (server)")
 	initLinkActive(lS, conn)
+}
+
+func (lS *LinkControlServer) Work() {
+
+	for {
+		ln, err := lS.Listen()
+		if err != nil {
+			log.Errorf("Listen error: %s", err.Error())
+			break
+		}
+		go lS.Accept(ln)
+		isExiting := lS.WaitCommand(ln)
+		if isExiting {
+			break
+		}
+	}
 
 }
