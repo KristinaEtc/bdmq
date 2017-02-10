@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"time"
@@ -17,9 +18,9 @@ func (lC *LinkControl) getId() string {
 	return lC.linkDesc.linkID
 }
 
-func (lC *LinkControl) getChannel() chan cmdContrlLink {
+/*func (lC *LinkControl) getChannel() chan cmdContrlLink {
 	return lC.commandCh
-}
+}*/
 
 func (lC *LinkControl) getLinkDesc() *LinkDesc {
 	return lC.linkDesc
@@ -29,25 +30,44 @@ func (lC *LinkControl) getNode() *Node {
 	return lC.node
 }
 
+func (lc *LinkControl) sendCommand(cmd cmdContrlLink) {
+	log.Debugf("sendCommand: %d %d", len(lc.commandCh), cap(lc.commandCh))
+	/*for len(lc.commandCh) >= cap(lc.commandCh) {
+		cmd := <-lc.commandCh
+		log.Debugf("sendCommand: cleanup %+v", cmd)
+	}*/
+	lc.commandCh <- cmd
+	/*if len(lc.commandCh) < cap(lc.commandCh) {
+		lc.commandCh <- cmd
+	} else {
+		log.Warnf("sendCommand %s channel overflow", lc.getId())
+	}*/
+
+}
+
 func (lC *LinkControl) Close() {
 	log.Info("(lC *LinkControl) Close()")
-	lC.commandCh <- cmdContrlLink{
+	lC.sendCommand(cmdContrlLink{
 		cmd: quitControlLink,
-	}
+	})
 }
 
 func (lC *LinkControl) NotifyErrorAccept(err error) {
-	lC.commandCh <- cmdContrlLink{
+	lC.sendCommand(cmdContrlLink{
 		cmd: errorControlLinkAccept,
 		err: "Error" + err.Error(),
-	}
+	})
 }
 
 func (lC *LinkControl) NotifyErrorRead(err error) {
-	lC.commandCh <- cmdContrlLink{
+	//WEIRD HACK
+	if lC.getLinkDesc().mode == "server" {
+		return
+	}
+	lC.sendCommand(cmdContrlLink{
 		cmd: errorControlLinkRead,
 		err: "Error" + err.Error(),
-	}
+	})
 }
 
 /*
@@ -113,8 +133,7 @@ func (lC *LinkControl) Accept(ln net.Listener) {
 		}
 		log.WithField("ID=", lC.linkDesc.linkID).Debug("New client")
 
-		lC.InitLinkActive(conn)
-		conn.Close()
+		go lC.InitLinkActive(conn)
 	}
 }
 
@@ -170,6 +189,8 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 			if command.cmd == quitControlLink {
 				log.Debug("linkControl: quit received")
 				conn.Close()
+				lC.WaitExit()
+
 				return true
 			}
 			if command.cmd == errorControlLinkAccept {
@@ -186,22 +207,38 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 
 }
 
+func (lC *LinkControl) WaitExit() {
+	log.Debugf("WaitExit")
+	timeout := time.NewTimer(time.Duration(30) * time.Second)
+	for {
+
+		select {
+		case _ = <-timeout.C:
+			return
+		case command := <-lC.commandCh:
+			log.Debugf("WaitExit: cmd %+v", command)
+			return
+		}
+	}
+}
+
 func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 
 	select {
 	case command := <-lC.commandCh:
 		if command.cmd == quitControlLink {
-			log.Debug("linkControl: quit received")
-			if conn != nil {
-				conn.Close()
-			}
+			log.Debugf("linkControl: quit received %s", lC.getId())
+			conn.Close()
+			lC.WaitExit()
 			return true
 		}
 		if command.cmd == errorControlLinkRead {
 			log.Errorf("Error: %s", command.err)
+			conn.Close()
 			return false
 		}
 		log.Warnf("linkControl: received something weird %d", command.cmd)
+		conn.Close()
 		return false
 	}
 }
@@ -218,15 +255,10 @@ func initLinkActive(lCntl *LinkControl, conn net.Conn) {
 
 	log.Debug(lCntl.getLinkDesc().handler)
 
-	ch := lCntl.getChannel()
-
 	if _, ok := handlers[lCntl.getLinkDesc().handler]; !ok {
 		log.Error("No handler! Closing linkControl")
 		conn.Close()
-		ch <- cmdContrlLink{
-			cmd: errorControlLinkRead,
-			err: "Error: " + "No handler! Closing linkControl",
-		}
+		lCntl.NotifyErrorRead(fmt.Errorf("Error: " + "No handler! Closing linkControl"))
 	}
 
 	node := lCntl.getNode()
@@ -267,6 +299,8 @@ func (lC *LinkControl) WorkClient() {
 		log.Debug("reconnect")
 
 	}
+
+	log.Debugf("WorkClient exit %s", lC.getId())
 }
 
 func (lC *LinkControl) WorkServer() {
@@ -285,4 +319,5 @@ func (lC *LinkControl) WorkServer() {
 		}
 	}
 
+	log.Debugf("WorkServer exit %s", lC.getId())
 }

@@ -71,6 +71,7 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 	mode, err := checkLinkMode(lD.mode)
 	if err != nil {
 		log.Error(err.Error())
+		return
 	}
 
 	n.RegisterLinkControl(linkControl)
@@ -183,7 +184,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 				log.Debug("h.hasLinks = 0!!")
 			}
 			log.Debugf("[unregisterControl] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
-			return n.hasActiveLinks != 0 && n.hasLinks != 0
+			return n.hasActiveLinks == 0 && n.hasLinks == 0
 		}
 	case stopNode:
 		{
@@ -191,13 +192,13 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 			if len(n.LinkActives) > 0 {
 				for linkID, lA := range n.LinkActives {
 					log.Debugf("Send close to %s", linkID)
-					lA.Close()
+					go lA.Close()
 				}
 			}
 			if len(n.LinkControls) > 0 {
 				for linkID, lC := range n.LinkControls {
 					log.Debugf("Send close to %s", linkID)
-					lC.Close()
+					go lC.Close()
 				}
 			}
 			return false
