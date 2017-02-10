@@ -2,6 +2,7 @@ package handlers
 
 import "github.com/KristinaEtc/bdmq/transport"
 import "github.com/ventu-io/slf"
+import "strings"
 
 var log = slf.WithContext("handlers.go")
 
@@ -27,8 +28,10 @@ type HandlerEcho struct {
 }
 
 // OnRead implements OnRead method from Heandler interface
-func (h *HandlerEcho) OnRead(msg string) {
-	log.Debugf("OnRead msg=%s. Resending it.", msg)
+func (h *HandlerEcho) OnRead(msg []byte) {
+
+	msgStr := strings.TrimSpace(string(msg))
+	log.Debugf("OnRead msg=%s. Resending it.", msgStr)
 	err := h.link.Write(msg)
 	if err != nil {
 		log.WithField("ID=", h.link.Id()).Errorf("Error read: %s", err.Error())
@@ -43,10 +46,9 @@ func (h *HandlerEcho) OnConnect() error {
 }
 
 // OnWrite implements OnWrote method from Heandler interface
-func (h *HandlerEcho) OnWrite(msg string) {
+func (h *HandlerEcho) OnWrite(msg []byte) {
 
 	log.WithField("ID=", h.link.Id()).Debugf("OnWrite")
-
 	err := h.link.Write(msg)
 	if err != nil {
 		log.WithField("ID=", h.link.Id()).Errorf("Error read: %s", err.Error())

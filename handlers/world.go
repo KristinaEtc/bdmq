@@ -3,6 +3,8 @@ package handlers
 import (
 	"time"
 
+	"strings"
+
 	"github.com/KristinaEtc/bdmq/transport"
 )
 
@@ -26,8 +28,10 @@ type HandlerHelloWorld struct {
 }
 
 // OnRead implements OnRead method from Heandler interface
-func (h *HandlerHelloWorld) OnRead(msg string) {
-	log.Debugf("OnRead msg=%s. Resending it.", msg)
+func (h *HandlerHelloWorld) OnRead(msg []byte) {
+
+	msgStr := strings.TrimSpace(string(msg))
+	log.Debugf("OnRead msg=%s. Resending it.", msgStr)
 }
 
 // OnConnect implements OnConnect method from Heandler interface
@@ -37,14 +41,14 @@ func (h *HandlerHelloWorld) OnConnect() error {
 	ticker := time.NewTicker(time.Second * 2)
 	func() {
 		for _ = range ticker.C {
-			h.OnWrite("Hello World\n")
+			h.OnWrite([]byte("Hello World\n"))
 		}
 	}()
 	return nil
 }
 
 // OnWrite implements OnWrote method from Heandler interface
-func (h *HandlerHelloWorld) OnWrite(msg string) {
+func (h *HandlerHelloWorld) OnWrite(msg []byte) {
 
 	log.WithField("ID=", h.link.Id()).Debugf("OnWrite")
 	err := h.link.Write(msg)

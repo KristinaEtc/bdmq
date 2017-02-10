@@ -3,6 +3,7 @@ package transport
 import (
 	"bufio"
 	"net"
+	"strings"
 )
 
 // LinkActive initialize LinkStater interface when
@@ -51,17 +52,17 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 					//lA.linkControl.NotifyError(errors.New("Error reading active "))
 				}*/
 				if command.cmd == sendMessageActive {
-					lA.handler.OnWrite(command.msg)
+					lA.handler.OnWrite([]byte(command.msg))
 				}
 			}
 		}
 	}
 }
 
-func (lA *LinkActive) Write(msg string) error {
+func (lA *LinkActive) Write(msg []byte) error {
 
 	log.Info("(lSub *LinkActive)Write")
-	lA.conn.Write([]byte(msg + "\n"))
+	lA.conn.Write(msg)
 	return nil
 }
 
@@ -79,7 +80,8 @@ func (lA *LinkActive) Read() {
 			log.Warn("exiting")
 			return
 		}
-		log.WithField("ID=", lA.LinkActiveID).Debugf("Message Received: %s", string(message))
-		lA.handler.OnRead(string(message))
+		msgStr := strings.TrimSpace(string(message))
+		log.WithField("ID=", lA.LinkActiveID).Debugf("Message Received: %s", msgStr)
+		lA.handler.OnRead(message)
 	}
 }

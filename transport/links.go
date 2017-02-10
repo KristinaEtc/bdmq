@@ -14,7 +14,7 @@ var s1 = rand.NewSource(time.Now().UnixNano())
 var r1 = rand.New(s1)
 
 type LinkWriter interface {
-	Write(string) error
+	Write([]byte) error
 	Close()
 	Id() string
 }

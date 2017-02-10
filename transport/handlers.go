@@ -11,9 +11,9 @@ type HandlerFactories map[string]HandlerFactory
 var handlers HandlerFactories = make(map[string]HandlerFactory)
 
 type Handler interface {
-	OnRead(string)
+	OnRead([]byte)
 	OnConnect() error
-	OnWrite(string)
+	OnWrite([]byte)
 }
 
 type HandlerFactory interface {

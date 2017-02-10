@@ -1,6 +1,10 @@
 package handlers
 
-import "github.com/KristinaEtc/bdmq/transport"
+import (
+	"strings"
+
+	"github.com/KristinaEtc/bdmq/transport"
+)
 
 type HandlerTestFactory struct {
 }
@@ -22,8 +26,10 @@ type HandlerTest struct {
 }
 
 // OnRead implements OnRead method from Heandler interface
-func (h *HandlerTest) OnRead(msg string) {
-	log.Debugf("OnRead msg=%s", msg)
+func (h *HandlerTest) OnRead(msg []byte) {
+
+	msgStr := strings.TrimSpace(string(msg))
+	log.Debugf("OnRead msg=%s", msgStr)
 	/*
 		if msg==commandQuit{
 			log.Debug("got command quit for ActiveLink with ID=%s ; exiting")
@@ -39,7 +45,7 @@ func (h *HandlerTest) OnConnect() error {
 }
 
 // OnWrite implements OnWrote method from Heandler interface
-func (h *HandlerTest) OnWrite(msg string) {
+func (h *HandlerTest) OnWrite(msg []byte) {
 
 	log.WithField("ID=", h.link.Id()).Debugf("OnWrite")
 
