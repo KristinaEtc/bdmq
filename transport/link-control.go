@@ -6,6 +6,8 @@ import (
 	"net"
 	"time"
 
+	"runtime/debug"
+
 	"github.com/ventu-io/slf"
 )
 
@@ -18,20 +20,20 @@ type LinkControl struct {
 	//conn      net.Conn
 }
 
-func (lC *LinkControl) getId() string {
-	return lC.linkDesc.linkID
+func (lc *LinkControl) getId() string {
+	return lc.linkDesc.linkID
 }
 
 /*func (lC *LinkControl) getChannel() chan cmdContrlLink {
 	return lC.commandCh
 }*/
 
-func (lC *LinkControl) getLinkDesc() *LinkDesc {
-	return lC.linkDesc
+func (lc *LinkControl) getLinkDesc() *LinkDesc {
+	return lc.linkDesc
 }
 
-func (lC *LinkControl) getNode() *Node {
-	return lC.node
+func (lc *LinkControl) getNode() *Node {
+	return lc.node
 }
 
 func (lc *LinkControl) sendCommand(cmd cmdContrlLink) {
@@ -50,7 +52,8 @@ func (lc *LinkControl) sendCommand(cmd cmdContrlLink) {
 }
 
 func (lc *LinkControl) Close() {
-	lc.log.Info("Close()")
+	lc.log.Debug("Close()")
+	debug.PrintStack()
 	lc.sendCommand(cmdContrlLink{
 		cmd: quitControlLink,
 	})
@@ -59,7 +62,7 @@ func (lc *LinkControl) Close() {
 func (lc *LinkControl) NotifyErrorAccept(err error) {
 	lc.sendCommand(cmdContrlLink{
 		cmd: errorControlLinkAccept,
-		err: "Error" + err.Error(),
+		err: err.Error(),
 	})
 }
 
@@ -70,7 +73,7 @@ func (lc *LinkControl) NotifyErrorRead(err error) {
 	}
 	lc.sendCommand(cmdContrlLink{
 		cmd: errorControlLinkRead,
-		err: "Error" + err.Error(),
+		err: err.Error(),
 	})
 }
 
@@ -122,7 +125,7 @@ func (lc *LinkControl) Listen() (net.Listener, error) {
 				lc.log.Debugf("func Listen(): got command %s", command.cmd)
 				if command.cmd == quitControlLink {
 					lc.isExiting = true
-					lc.log.Info("Got quit commant. Closing link")
+					lc.log.Debug("Got quit commant. Closing link")
 					return nil, ErrQuitLinkRequested
 				}
 				lc.log.Warnf("Got impermissible command %s. Ignored.", command)
@@ -184,7 +187,7 @@ func (lc *LinkControl) Dial() (net.Conn, error) {
 				log.Debugf("Dial: got command %+v", command)
 				if command.cmd == quitControlLink {
 					lc.isExiting = true
-					lc.log.Info("Dial: Got quit commant. Closing link")
+					lc.log.Debug("Dial: Got quit commant. Closing link")
 					//return nil, ErrQuitLinkRequested
 					return nil, err
 				}
@@ -199,7 +202,7 @@ func (lc *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 		select {
 		case command := <-lc.commandCh:
 			if command.cmd == quitControlLink {
-				lc.log.Debugf("linkControl: quit received")
+				lc.log.Debugf("WaitCommandServer: quit received")
 				lc.isExiting = true
 				conn.Close()
 				lc.WaitExit()
@@ -258,7 +261,7 @@ func (lc *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 }
 
 func (lc *LinkControl) initLinkActive(conn net.Conn) {
-	id := lc.getId() + ":" + conn.RemoteAddr().String()
+	id := lc.getId() + ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
 	lc.log.Debugf("InitLinkActive: %s", id)
 	linkActive := LinkActive{
 		conn:         conn,

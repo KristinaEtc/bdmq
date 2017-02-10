@@ -19,7 +19,7 @@ type Node struct {
 	NodeID         string
 	LinkDescs      map[string]*LinkDesc
 	LinkActives    map[string]*LinkActive
-	LinkControls   map[string]LinkControl
+	LinkControls   map[string]*LinkControl
 	commandCh      chan *NodeCommand
 	hasLinks       int
 	hasActiveLinks int
@@ -28,7 +28,7 @@ type Node struct {
 func NewNode() (n *Node) {
 	n = &Node{
 		LinkDescs:    make(map[string]*LinkDesc),
-		LinkControls: make(map[string]LinkControl),
+		LinkControls: make(map[string]*LinkControl),
 		LinkActives:  make(map[string]*LinkActive),
 		commandCh:    make(chan *NodeCommand),
 	}
@@ -67,7 +67,7 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 	log := slf.WithContext("LinkControl").WithFields(slf.Fields{"ID": lD.linkID})
 	log.Debugf("func InitLinkControl() %+v", lD)
 
-	linkControl := LinkControl{
+	linkControl := &LinkControl{
 		linkDesc:  lD,
 		node:      n,
 		commandCh: make(chan cmdContrlLink),
@@ -90,10 +90,10 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 		linkControl.WorkServer()
 	}
 
-	log.Debugf("func InitLinkControl() %+v closing", lD)
+	log.Debugf("func InitLinkControl() closing %+v", lD)
 }
 
-func (n *Node) RegisterLinkControl(lControl LinkControl) {
+func (n *Node) RegisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func RegisterLinkControl() %s", lControl.getId())
 	n.commandCh <- &NodeCommand{
@@ -110,7 +110,7 @@ func (n *Node) RegisterLinkActive(lActive *LinkActive) {
 	}
 }
 
-func (n *Node) UnregisterLinkControl(lControl LinkControl) {
+func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func UnregisterLinkControl() %s", lControl.getId())
 	n.commandCh <- &NodeCommand{
@@ -195,18 +195,17 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 	case stopNode:
 		{
 			log.Infof("Stop received")
-			if len(n.LinkActives) > 0 {
-				for linkID, lA := range n.LinkActives {
-					log.Debugf("Send close to %s", linkID)
-					go lA.Close()
-				}
+
+			for linkID, lA := range n.LinkActives {
+				log.Debugf("Send close to active link %s %s", linkID, lA.Id())
+				go closeHelper(lA)
 			}
-			if len(n.LinkControls) > 0 {
-				for linkID, lC := range n.LinkControls {
-					log.Debugf("Send close to %s", linkID)
-					go lC.Close()
-				}
+
+			for linkID, lC := range n.LinkControls {
+				log.Debugf("Send close to link control %s %s", linkID, lC.getId())
+				go closeHelper(lC)
 			}
+
 			return false
 		}
 	case sendMessageNode:
@@ -227,6 +226,10 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 			return false
 		}
 	}
+}
+
+func closeHelper(closer LinkCloser) {
+	closer.Close()
 }
 
 func (n *Node) MainLoop() {
