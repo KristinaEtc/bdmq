@@ -67,17 +67,18 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 	log := slf.WithContext("LinkControl").WithFields(slf.Fields{"ID": lD.linkID})
 	log.Debugf("func InitLinkControl() %+v", lD)
 
-	linkControl := &LinkControl{
-		linkDesc:  lD,
-		node:      n,
-		commandCh: make(chan cmdContrlLink),
-		log:       log,
-	}
-
 	mode, err := checkLinkMode(lD.mode)
 	if err != nil {
 		log.Errorf("checkLinkMode error %s", err.Error())
 		return
+	}
+
+	linkControl := &LinkControl{
+		linkDesc:  lD,
+		node:      n,
+		mode:      mode,
+		commandCh: make(chan cmdContrlLink),
+		log:       log,
 	}
 
 	n.RegisterLinkControl(linkControl)

@@ -3,7 +3,6 @@ package transport
 import (
 	"bufio"
 	"net"
-	"strings"
 
 	"github.com/ventu-io/slf"
 )
@@ -23,6 +22,10 @@ type LinkActive struct {
 
 func (lA *LinkActive) Id() string {
 	return lA.LinkActiveID
+}
+
+func (lA *LinkActive) Mode() int {
+	return lA.linkControl.Mode()
 }
 
 func (lA *LinkActive) Close() {
@@ -63,7 +66,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 }
 
 func (lA *LinkActive) Write(msg []byte) error {
-	lA.log.Debug("Write")
+	//lA.log.Debug("Write")
 	lA.conn.Write(msg)
 	return nil
 }
@@ -82,8 +85,8 @@ func (lA *LinkActive) Read() {
 			lA.log.Warn("exiting")
 			return
 		}
-		msgStr := strings.TrimSpace(string(message))
-		lA.log.Debugf("Message Received: %s", msgStr)
+		//msgStr := strings.TrimSpace(string(message))
+		//lA.log.Debugf("Message Received: %s", msgStr)
 		lA.handler.OnRead(message)
 	}
 }

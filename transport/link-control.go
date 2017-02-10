@@ -13,6 +13,7 @@ import (
 
 type LinkControl struct {
 	linkDesc  *LinkDesc
+	mode      int
 	node      *Node
 	commandCh chan cmdContrlLink
 	isExiting bool
@@ -22,6 +23,10 @@ type LinkControl struct {
 
 func (lc *LinkControl) getId() string {
 	return lc.linkDesc.linkID
+}
+
+func (lc *LinkControl) Mode() int {
+	return lc.mode
 }
 
 /*func (lC *LinkControl) getChannel() chan cmdContrlLink {

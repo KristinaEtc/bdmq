@@ -18,6 +18,7 @@ type LinkCloser interface {
 }
 
 type LinkWriter interface {
+	Mode() int
 	Write([]byte) error
 	Close()
 	Id() string
