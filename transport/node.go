@@ -14,8 +14,8 @@ type LinkDesc struct {
 type Node struct {
 	NodeID         string
 	LinkDescs      map[string]*LinkDesc
-	LinkActives    map[string]*LinkActive
-	LinkControls   map[string]LinkControl
+	ActiveLinks    map[string]*ActiveLink
+	ControlLinks   map[string]LinkControl
 	commandCh      chan *NodeCommand
 	hasLinks       int
 	hasActiveLinks int
@@ -24,8 +24,8 @@ type Node struct {
 func NewNode() (n *Node) {
 	n = &Node{
 		LinkDescs:    make(map[string]*LinkDesc),
-		LinkControls: make(map[string]LinkControl),
-		LinkActives:  make(map[string]*LinkActive),
+		ControlLinks: make(map[string]LinkControl),
+		ActiveLinks:  make(map[string]*ActiveLink),
 		commandCh:    make(chan *NodeCommand),
 	}
 	return
@@ -59,7 +59,7 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 	return nil
 }
 
-func (n *Node) InitLinkControl(lD *LinkDesc) {
+func (n *Node) InitControlLink(lD *LinkDesc) {
 	log.Debug("func InitLinkControl()")
 
 	linkControl := LinkControl{
@@ -74,8 +74,8 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 		return
 	}
 
-	n.RegisterLinkControl(linkControl)
-	defer n.UnregisterLinkControl(linkControl)
+	n.RegisterControlLink(linkControl)
+	defer n.UnregisterControlLink(linkControl)
 
 	switch mode {
 	case 0:
@@ -87,7 +87,7 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 	log.Debug("func InitLinkControl() closing")
 }
 
-func (n *Node) RegisterLinkControl(lControl LinkControl) {
+func (n *Node) RegisterControlLink(lControl LinkControl) {
 
 	log.Debug("func RegisterLinkControl()")
 	n.commandCh <- &NodeCommand{
@@ -96,7 +96,7 @@ func (n *Node) RegisterLinkControl(lControl LinkControl) {
 	}
 }
 
-func (n *Node) RegisterLinkActive(lActive *LinkActive) {
+func (n *Node) RegisterActiveLink(lActive *ActiveLink) {
 	log.Debug("func RegisterLinkActive()")
 	n.commandCh <- &NodeCommand{
 		cmd:    registerActive,
@@ -104,7 +104,7 @@ func (n *Node) RegisterLinkActive(lActive *LinkActive) {
 	}
 }
 
-func (n *Node) UnregisterLinkControl(lControl LinkControl) {
+func (n *Node) UnregisterControlLink(lControl LinkControl) {
 
 	log.Debug("func UnregisterLinkControl()")
 	n.commandCh <- &NodeCommand{
@@ -113,7 +113,7 @@ func (n *Node) UnregisterLinkControl(lControl LinkControl) {
 	}
 }
 
-func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
+func (n *Node) UnregisterActiveLink(lActive *ActiveLink) {
 
 	log.Debug("func UnregisterLinkActive()")
 	n.commandCh <- &NodeCommand{
@@ -134,7 +134,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 	switch cmdMsg.cmd {
 	case registerActive:
 		{
-			n.LinkActives[cmdMsg.active.Id()] = cmdMsg.active
+			n.ActiveLinks[cmdMsg.active.Id()] = cmdMsg.active
 			//n.hasActiveLinks = len(n.LinkActives) > 0
 			n.hasActiveLinks++
 			log.Debugf("[registerActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
@@ -142,8 +142,8 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case unregisterActive:
 		{
-			if len(n.LinkActives) > 0 {
-				for _, lA := range n.LinkActives {
+			if len(n.ActiveLinks) > 0 {
+				for _, lA := range n.ActiveLinks {
 					log.Debugf("%s", lA.Id())
 					//return false
 				}
@@ -151,7 +151,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 				log.Debug("NIL")
 			}
 
-			delete(n.LinkActives, cmdMsg.active.Id())
+			delete(n.ActiveLinks, cmdMsg.active.Id())
 			if n.hasActiveLinks != 0 {
 				n.hasActiveLinks--
 			} else {
@@ -167,7 +167,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case registerControl:
 		{
-			n.LinkControls[cmdMsg.ctrl.getId()] = cmdMsg.ctrl
+			n.ControlLinks[cmdMsg.ctrl.getId()] = cmdMsg.ctrl
 			//n.hasLinks = len(n.LinkControls) > 0
 			n.hasLinks++
 			log.Debugf("[registerControl] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
@@ -175,7 +175,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case unregisterControl:
 		{
-			delete(n.LinkControls, cmdMsg.ctrl.getId())
+			delete(n.ControlLinks, cmdMsg.ctrl.getId())
 			//	n.hasLinks = len(n.LinkControls) > 0
 			//	return !(n.hasLinks || n.hasActiveLinks)
 			if n.hasLinks != 0 {
@@ -189,14 +189,14 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 	case stopNode:
 		{
 			log.Infof("Stop received")
-			if len(n.LinkActives) > 0 {
-				for linkID, lA := range n.LinkActives {
+			if len(n.ActiveLinks) > 0 {
+				for linkID, lA := range n.ActiveLinks {
 					log.Debugf("Send close to %s", linkID)
 					go lA.Close()
 				}
 			}
-			if len(n.LinkControls) > 0 {
-				for linkID, lC := range n.LinkControls {
+			if len(n.ControlLinks) > 0 {
+				for linkID, lC := range n.ControlLinks {
 					log.Debugf("Send close to %s", linkID)
 					go lC.Close()
 				}
@@ -205,8 +205,8 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case sendMessageNode:
 		{
-			if len(n.LinkActives) > 0 {
-				for _, lA := range n.LinkActives {
+			if len(n.ActiveLinks) > 0 {
+				for _, lA := range n.ActiveLinks {
 					log.Debug("for testing i'm choosing all active links")
 					lA.SendMessage(cmdMsg.msg)
 					//return false
@@ -248,7 +248,7 @@ func (n *Node) Run() error {
 	go n.MainLoop()
 
 	for _, lD := range n.LinkDescs {
-		go n.InitLinkControl(lD)
+		go n.InitControlLink(lD)
 	}
 
 	log.Debug("func Run() closing")

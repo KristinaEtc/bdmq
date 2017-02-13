@@ -138,7 +138,7 @@ func (lC *LinkControl) Accept(ln net.Listener) {
 		}
 		log.WithField("ID=", lC.linkDesc.linkID).Debug("New client")
 
-		go lC.InitLinkActive(conn)
+		go lC.InitActiveLink(conn)
 	}
 }
 
@@ -254,14 +254,14 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 	}
 }
 
-func initLinkActive(lCntl *LinkControl, conn net.Conn) {
+func initActiveLink(lCntl *LinkControl, conn net.Conn) {
 
-	linkActive := LinkActive{
+	activeLink := ActiveLink{
 		conn:         conn,
 		linkDesc:     lCntl.getLinkDesc(),
 		LinkActiveID: lCntl.getId() + ":" + conn.RemoteAddr().String(),
 		commandCh:    make(chan cmdActiveLink),
-		linkControl:  *lCntl,
+		controlLink:  *lCntl,
 	}
 
 	log.Debug(lCntl.getLinkDesc().handler)
@@ -273,23 +273,23 @@ func initLinkActive(lCntl *LinkControl, conn net.Conn) {
 	}
 
 	node := lCntl.getNode()
-	h := handlers[lCntl.getLinkDesc().handler].InitHandler(&linkActive, node)
-	linkActive.handler = h
+	h := handlers[lCntl.getLinkDesc().handler].InitHandler(&activeLink, node)
+	activeLink.handler = h
 
-	node.RegisterLinkActive(&linkActive)
+	node.RegisterActiveLink(&activeLink)
 
-	go linkActive.WaitCommand(conn)
-	linkActive.handler.OnConnect()
-	linkActive.Read()
+	go activeLink.WaitCommand(conn)
+	activeLink.handler.OnConnect()
+	activeLink.Read()
 	log.Debug("initLinkActive exiting")
 	//linkActive.handler.OnDisconnect()
 
-	node.UnregisterLinkActive(&linkActive)
+	node.UnregisterActiveLink(&activeLink)
 }
 
-func (lC *LinkControl) InitLinkActive(conn net.Conn) {
+func (lC *LinkControl) InitActiveLink(conn net.Conn) {
 	log.Debug("func InitLinkActive")
-	initLinkActive(lC, conn)
+	initActiveLink(lC, conn)
 }
 
 func (lC *LinkControl) WorkClient() {
@@ -301,7 +301,7 @@ func (lC *LinkControl) WorkClient() {
 			break
 		}
 
-		go lC.InitLinkActive(conn)
+		go lC.InitActiveLink(conn)
 		isExiting := lC.WaitCommandClient(conn)
 		if isExiting {
 			log.Debug("isExiting client")

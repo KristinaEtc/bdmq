@@ -8,35 +8,35 @@ import (
 
 // LinkActive initialize LinkStater interface when
 // connecting is ok
-type LinkActive struct {
+type ActiveLink struct {
 	conn         net.Conn
 	linkDesc     *LinkDesc
 	LinkActiveID string
 	handler      Handler
 	//parser       *parser.Parser
 	commandCh   chan cmdActiveLink
-	linkControl LinkControl
+	controlLink LinkControl
 }
 
-func (lA *LinkActive) Id() string {
+func (lA *ActiveLink) Id() string {
 	return lA.LinkActiveID
 }
 
-func (lA *LinkActive) Close() {
+func (lA *ActiveLink) Close() {
 	log.Info("(func LinkActive Close()")
 	lA.commandCh <- cmdActiveLink{
 		cmd: quitLinkActive,
 	}
 }
 
-func (lA *LinkActive) SendMessage(msg string) {
+func (lA *ActiveLink) SendMessage(msg string) {
 	lA.commandCh <- cmdActiveLink{
 		cmd: sendMessageActive,
 		msg: msg,
 	}
 }
 
-func (lA *LinkActive) WaitCommand(conn net.Conn) {
+func (lA *ActiveLink) WaitCommand(conn net.Conn) {
 	for {
 		select {
 		case command := <-lA.commandCh:
@@ -59,7 +59,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 	}
 }
 
-func (lA *LinkActive) Write(msg []byte) error {
+func (lA *ActiveLink) Write(msg []byte) error {
 
 	log.Info("(lSub *LinkActive)Write")
 	lA.conn.Write(msg)
@@ -67,7 +67,7 @@ func (lA *LinkActive) Write(msg []byte) error {
 }
 
 //func (lA *LinkActive) Read(b []byte) error {
-func (lA *LinkActive) Read() {
+func (lA *ActiveLink) Read() {
 	log.Info("(lSub *LinkActive)Read")
 
 	//	buf := make([]byte, lA.linkDesc.bufSize)
@@ -76,7 +76,7 @@ func (lA *LinkActive) Read() {
 		message, err := bufio.NewReader(lA.conn).ReadBytes('\n')
 		if err != nil {
 			log.WithField("ID=", lA.LinkActiveID).Errorf("Error read: %s", err.Error())
-			lA.linkControl.NotifyErrorRead(err)
+			lA.controlLink.NotifyErrorRead(err)
 			log.Warn("exiting")
 			return
 		}
