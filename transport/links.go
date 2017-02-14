@@ -13,7 +13,12 @@ const backOffLimit = time.Duration(time.Second * 600)
 var s1 = rand.NewSource(time.Now().UnixNano())
 var r1 = rand.New(s1)
 
+type LinkCloser interface {
+	Close()
+}
+
 type LinkWriter interface {
+	Mode() int
 	Write([]byte) error
 	Close()
 	Id() string
