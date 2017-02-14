@@ -149,7 +149,7 @@ func (lc *LinkControl) Accept(ln net.Listener) {
 		}
 		lc.log.Debugf("Accept: new client %s", conn.RemoteAddr().String())
 
-		go lc.initLinkActive(conn)
+		go lC.InitActiveLink(conn)
 	}
 }
 
@@ -265,10 +265,10 @@ func (lc *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 	}
 }
 
-func (lc *LinkControl) initLinkActive(conn net.Conn) {
+func (lc *LinkControl) initActiveLink(conn net.Conn) {
 	id := lc.getId() + ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
 	lc.log.Debugf("InitLinkActive: %s", id)
-	linkActive := LinkActive{
+	linkActive := ActiveLink{
 		conn:         conn,
 		linkDesc:     lc.getLinkDesc(),
 		LinkActiveID: id,
@@ -288,66 +288,11 @@ func (lc *LinkControl) initLinkActive(conn net.Conn) {
 		return
 	}
 
-	node := lc.getNode()
-	h := hFactory.InitHandler(&linkActive, node)
-	linkActive.handler = h
+	node := lCntl.getNode()
+	h := handlers[lCntl.getLinkDesc().handler].InitHandler(&activeLink, node)
+	activeLink.handler = h
 
-	node.RegisterLinkActive(&linkActive)
 
-	go linkActive.WaitCommand(conn)
-	linkActive.handler.OnConnect()
-	linkActive.Read()
-	//linkActive.handler.OnDisconnect()
-	node.UnregisterLinkActive(&linkActive)
+	node.RegisterActiveLink(&activeLink)
 
-	linkActive.log.Debug("initLinkActive exiting")
-}
-
-/*func (lc *LinkControl) InitLinkActive(conn net.Conn) {
-	lc.log.Debug("InitLinkActive")
-	initLinkActive(lC, conn)
-}*/
-
-func (lc *LinkControl) WorkClient() {
-
-	for {
-		lc.log.Debug("WorkClient: -------------------------------------")
-		conn, err := lc.Dial()
-		if err != nil {
-			lc.log.Errorf("WorkClient: dial error: %s", err.Error())
-			break
-		}
-
-		go lc.initLinkActive(conn)
-		isExiting := lc.WaitCommandClient(conn)
-		if isExiting {
-			lc.log.Debug("WorkClient: isExiting client")
-			break
-		}
-		lc.log.Debug("WorkClient: reconnect")
-
-	}
-
-	lc.log.Debug("WorkClient exit")
-}
-
-func (lc *LinkControl) WorkServer() {
-
-	for {
-		lc.log.Debug("WorkServer: -------------------------------------")
-		ln, err := lc.Listen()
-		if err != nil {
-			lc.log.Errorf("WorkServer: listen error %s", err.Error())
-			return
-		}
-		go lc.Accept(ln)
-
-		isExiting := lc.WaitCommandServer(ln)
-		if isExiting {
-			lc.log.Debug("WorkClient: isExiting server")
-			break
-		}
-	}
-
-	lc.log.Debug("WorkServer: exit")
-}
+	go 

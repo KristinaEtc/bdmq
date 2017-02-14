@@ -18,7 +18,7 @@ type LinkDesc struct {
 type Node struct {
 	NodeID         string
 	LinkDescs      map[string]*LinkDesc
-	LinkActives    map[string]*LinkActive
+	ActiveLinks    map[string]*ActiveLink
 	LinkControls   map[string]*LinkControl
 	commandCh      chan *NodeCommand
 	hasLinks       int
@@ -29,7 +29,7 @@ func NewNode() (n *Node) {
 	n = &Node{
 		LinkDescs:    make(map[string]*LinkDesc),
 		LinkControls: make(map[string]*LinkControl),
-		LinkActives:  make(map[string]*LinkActive),
+		ActiveLinks:  make(map[string]*ActiveLink),
 		commandCh:    make(chan *NodeCommand),
 	}
 	return
@@ -103,12 +103,9 @@ func (n *Node) RegisterLinkControl(lControl *LinkControl) {
 	}
 }
 
-func (n *Node) RegisterLinkActive(lActive *LinkActive) {
+
+func (n *Node) RegisterLinkActive(lActive *ActiveLink) {
 	log.Debugf("func RegisterLinkActive() %s", lActive.Id())
-	n.commandCh <- &NodeCommand{
-		cmd:    registerActive,
-		active: lActive,
-	}
 }
 
 func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
@@ -120,7 +117,7 @@ func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 	}
 }
 
-func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
+func (n *Node) UnregisterActiveLink(lActive *ActiveLink) {
 
 	log.Debugf("func UnregisterLinkActive() %s", lActive.Id())
 	n.commandCh <- &NodeCommand{
@@ -141,7 +138,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 	switch cmdMsg.cmd {
 	case registerActive:
 		{
-			n.LinkActives[cmdMsg.active.Id()] = cmdMsg.active
+			n.ActiveLinks[cmdMsg.active.Id()] = cmdMsg.active
 			//n.hasActiveLinks = len(n.LinkActives) > 0
 			n.hasActiveLinks++
 			log.Debugf("[registerActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
@@ -149,8 +146,8 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case unregisterActive:
 		{
-			if len(n.LinkActives) > 0 {
-				for _, lA := range n.LinkActives {
+			if len(n.ActiveLinks) > 0 {
+				for _, lA := range n.ActiveLinks {
 					log.Debugf("%s", lA.Id())
 					//return false
 				}
@@ -158,7 +155,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 				log.Debug("NIL")
 			}
 
-			delete(n.LinkActives, cmdMsg.active.Id())
+			delete(n.ActiveLinks, cmdMsg.active.Id())
 			if n.hasActiveLinks != 0 {
 				n.hasActiveLinks--
 			} else {
@@ -174,7 +171,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case registerControl:
 		{
-			n.LinkControls[cmdMsg.ctrl.getId()] = cmdMsg.ctrl
+			n.ControlLinks[cmdMsg.ctrl.getId()] = cmdMsg.ctrl
 			//n.hasLinks = len(n.LinkControls) > 0
 			n.hasLinks++
 			log.Debugf("[registerControl] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
@@ -182,7 +179,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		}
 	case unregisterControl:
 		{
-			delete(n.LinkControls, cmdMsg.ctrl.getId())
+			delete(n.ControlLinks, cmdMsg.ctrl.getId())
 			//	n.hasLinks = len(n.LinkControls) > 0
 			//	return !(n.hasLinks || n.hasActiveLinks)
 			if n.hasLinks != 0 {
@@ -197,7 +194,7 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 		{
 			log.Infof("Stop received")
 
-			for linkID, lA := range n.LinkActives {
+			for linkID, lA := range n.ActiveLinks {
 				log.Debugf("Send close to active link %s %s", linkID, lA.Id())
 				go closeHelper(lA)
 			}
@@ -205,14 +202,16 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 			for linkID, lC := range n.LinkControls {
 				log.Debugf("Send close to link control %s %s", linkID, lC.getId())
 				go closeHelper(lC)
+
+
 			}
 
 			return false
 		}
 	case sendMessageNode:
 		{
-			if len(n.LinkActives) > 0 {
-				for _, lA := range n.LinkActives {
+			if len(n.ActiveLinks) > 0 {
+				for _, lA := range n.ActiveLinks {
 					log.Debug("for testing i'm choosing all active links")
 					lA.SendMessage(cmdMsg.msg)
 					//return false
@@ -258,7 +257,7 @@ func (n *Node) Run() error {
 	go n.MainLoop()
 
 	for _, lD := range n.LinkDescs {
-		go n.InitLinkControl(lD)
+		go n.InitControlLink(lD)
 	}
 
 	log.Debug("Node.Run() exit")
