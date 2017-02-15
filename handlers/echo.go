@@ -48,7 +48,7 @@ func (h *HandlerEcho) OnConnect() error {
 		tmp[i] = byte(48 + (i & 7))
 	}
 	tmp[cnt-1] = byte('\n')
-	if h.link.Mode() == 1 {
+	if h.link.Mode() == transport.ClientMode {
 		//h.OnWrite([]byte("0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF\n"))
 		h.OnWrite(tmp)
 	}

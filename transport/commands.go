@@ -1,5 +1,10 @@
 package transport
 
+const (
+	ServerMode int = iota
+	ClientMode
+)
+
 type commandNode int
 
 func (c commandNode) String() string {
