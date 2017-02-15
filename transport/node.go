@@ -1,7 +1,11 @@
 package transport
 
-import "time"
-import "fmt"
+import (
+	"fmt"
+	"time"
+
+	"github.com/ventu-io/slf"
+)
 
 type LinkDesc struct {
 	linkID  string
@@ -15,7 +19,7 @@ type Node struct {
 	NodeID         string
 	LinkDescs      map[string]*LinkDesc
 	LinkActives    map[string]*LinkActive
-	LinkControls   map[string]LinkControl
+	LinkControls   map[string]*LinkControl
 	commandCh      chan *NodeCommand
 	hasLinks       int
 	hasActiveLinks int
@@ -24,7 +28,7 @@ type Node struct {
 func NewNode() (n *Node) {
 	n = &Node{
 		LinkDescs:    make(map[string]*LinkDesc),
-		LinkControls: make(map[string]LinkControl),
+		LinkControls: make(map[string]*LinkControl),
 		LinkActives:  make(map[string]*LinkActive),
 		commandCh:    make(chan *NodeCommand),
 	}
@@ -43,8 +47,6 @@ func checkLinkMode(mode string) (int, error) {
 
 func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 
-	log.Debug("func InitLinkDesc()")
-
 	for _, l := range lDescJSON {
 
 		lDesc := &LinkDesc{
@@ -60,18 +62,22 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 }
 
 func (n *Node) InitLinkControl(lD *LinkDesc) {
-	log.Debug("func InitLinkControl()")
 
-	linkControl := LinkControl{
-		linkDesc:  lD,
-		node:      n,
-		commandCh: make(chan cmdContrlLink),
-	}
+	log := slf.WithContext("LinkControl").WithFields(slf.Fields{"ID": lD.linkID})
+	log.Debugf("func InitLinkControl() %+v", lD)
 
 	mode, err := checkLinkMode(lD.mode)
 	if err != nil {
-		log.Error(err.Error())
+		log.Errorf("checkLinkMode error %s", err.Error())
 		return
+	}
+
+	linkControl := &LinkControl{
+		linkDesc:  lD,
+		node:      n,
+		commandCh: make(chan cmdContrlLink),
+		log:       log,
+		mode:      mode,
 	}
 
 	n.RegisterLinkControl(linkControl)
@@ -84,12 +90,12 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 		linkControl.WorkServer()
 	}
 
-	log.Debug("func InitLinkControl() closing")
+	log.Debugf("func InitLinkControl() %+v closing", lD)
 }
 
-func (n *Node) RegisterLinkControl(lControl LinkControl) {
+func (n *Node) RegisterLinkControl(lControl *LinkControl) {
 
-	log.Debug("func RegisterLinkControl()")
+	log.Debugf("func RegisterLinkControl() %s", lControl.getId())
 	n.commandCh <- &NodeCommand{
 		cmd:  registerControl,
 		ctrl: lControl,
@@ -97,16 +103,16 @@ func (n *Node) RegisterLinkControl(lControl LinkControl) {
 }
 
 func (n *Node) RegisterLinkActive(lActive *LinkActive) {
-	log.Debug("func RegisterLinkActive()")
+	log.Debugf("func RegisterLinkActive() %s", lActive.Id())
 	n.commandCh <- &NodeCommand{
 		cmd:    registerActive,
 		active: lActive,
 	}
 }
 
-func (n *Node) UnregisterLinkControl(lControl LinkControl) {
+func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 
-	log.Debug("func UnregisterLinkControl()")
+	log.Debugf("func UnregisterLinkControl() %s", lControl.getId())
 	n.commandCh <- &NodeCommand{
 		cmd:  unregisterControl,
 		ctrl: lControl,
@@ -115,7 +121,7 @@ func (n *Node) UnregisterLinkControl(lControl LinkControl) {
 
 func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 
-	log.Debug("func UnregisterLinkActive()")
+	log.Debugf("func UnregisterLinkActive() %s", lActive.Id())
 	n.commandCh <- &NodeCommand{
 		cmd:    unregisterActive,
 		active: lActive,
@@ -127,6 +133,10 @@ func (n *Node) SendMessage(activeLinkId string, msg string) {
 		cmd: sendMessageNode,
 		msg: msg,
 	}
+}
+
+func closeHelper(closer LinkCloser) {
+	closer.Close()
 }
 
 func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
@@ -191,14 +201,14 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 			log.Infof("Stop received")
 			if len(n.LinkActives) > 0 {
 				for linkID, lA := range n.LinkActives {
-					log.Debugf("Send close to %s", linkID)
-					go lA.Close()
+					log.Debugf("Send close to active link %s %s", linkID, lA.Id())
+					go closeHelper(lA)
 				}
 			}
 			if len(n.LinkControls) > 0 {
 				for linkID, lC := range n.LinkControls {
-					log.Debugf("Send close to %s", linkID)
-					go lC.Close()
+					log.Debugf("Send close to link control %s %s", linkID, lC.getId())
+					go closeHelper(lC)
 				}
 			}
 			return false
@@ -224,7 +234,8 @@ func (n *Node) processCommand(cmdMsg *NodeCommand) (isExiting bool) {
 }
 
 func (n *Node) MainLoop() {
-	log.Debug("func MainLoop()")
+
+	log.Debug("Node.MainLoop() enter")
 
 	for {
 		cmd := <-n.commandCh
@@ -233,12 +244,12 @@ func (n *Node) MainLoop() {
 			break
 		}
 	}
-	log.Debug("func MainLoop() closing")
+	log.Debug("Node.MainLoop() exit")
 }
 
 func (n *Node) Run() error {
 
-	log.Debug("func Run()")
+	log.Debug("Node.Run() enter")
 
 	if n.LinkDescs == nil && len(n.LinkDescs) == 0 {
 		log.Debug(ErrEmptyLinkRepository.Error())
@@ -251,13 +262,13 @@ func (n *Node) Run() error {
 		go n.InitLinkControl(lD)
 	}
 
-	log.Debug("func Run() closing")
+	log.Debug("Node.Run() exit")
 
 	return nil
 }
 
 func (n *Node) Stop() {
-	log.Debug("func Stop()")
+	log.Debug("Node.Stop()")
 
 	//todo: add checking if channel is exist
 	n.commandCh <- &NodeCommand{
@@ -265,16 +276,9 @@ func (n *Node) Stop() {
 	}
 
 	//TODO: wait with WaitGroup()
-	log.Warn("Waiting")
-	log.Debugf("hasLinks=%d, hasActive=%d", n.hasLinks, n.hasActiveLinks)
+	log.Debugf("Node.Stop: waiting active:%d control:%d", n.hasActiveLinks, n.hasLinks)
 	for n.hasLinks != 0 || n.hasActiveLinks != 0 {
-		if n.hasActiveLinks != 0 {
-			log.Debugf("hasActive=%d", n.hasActiveLinks)
-		}
-		if n.hasLinks != 0 {
-			log.Debugf("hasLinks=%d", n.hasLinks)
-		}
 		time.Sleep(time.Second * time.Duration(1))
-		log.Warnf("waiting")
+		log.Warnf("Node.Stop: waiting active:%d control:%d", n.hasActiveLinks, n.hasLinks)
 	}
 }

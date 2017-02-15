@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime/debug"
 	"time"
+
+	"github.com/ventu-io/slf"
 )
 
 type LinkControl struct {
@@ -12,7 +15,13 @@ type LinkControl struct {
 	node      *Node
 	commandCh chan cmdContrlLink
 	isExiting bool
+	log       slf.Logger
+	mode      int
 	//conn      net.Conn
+}
+
+func (lc *LinkControl) Mode() int {
+	return lc.mode
 }
 
 func (lC *LinkControl) getId() string {
@@ -31,13 +40,13 @@ func (lC *LinkControl) getNode() *Node {
 	return lC.node
 }
 
-func (lc *LinkControl) sendCommand(cmd cmdContrlLink) {
-	log.Debugf("sendCommand: %d %d", len(lc.commandCh), cap(lc.commandCh))
+func (lC *LinkControl) sendCommand(cmd cmdContrlLink) {
+	lC.log.Debugf("sendCommand: %d %d", len(lC.commandCh), cap(lC.commandCh))
 	/*for len(lc.commandCh) >= cap(lc.commandCh) {
 		cmd := <-lc.commandCh
 		log.Debugf("sendCommand: cleanup %+v", cmd)
 	}*/
-	lc.commandCh <- cmd
+	lC.commandCh <- cmd
 	/*if len(lc.commandCh) < cap(lc.commandCh) {
 		lc.commandCh <- cmd
 	} else {
@@ -47,7 +56,8 @@ func (lc *LinkControl) sendCommand(cmd cmdContrlLink) {
 }
 
 func (lC *LinkControl) Close() {
-	log.Info("(lC *LinkControl) Close()")
+	lC.log.Debug("Close()")
+	debug.PrintStack()
 	lC.sendCommand(cmdContrlLink{
 		cmd: quitControlLink,
 	})
@@ -56,7 +66,7 @@ func (lC *LinkControl) Close() {
 func (lC *LinkControl) NotifyErrorAccept(err error) {
 	lC.sendCommand(cmdContrlLink{
 		cmd: errorControlLinkAccept,
-		err: "Error" + err.Error(),
+		err: err.Error(),
 	})
 }
 
@@ -81,8 +91,7 @@ func (lC *LinkControlClient) NotifyErrorFromActive(err error) {
 */
 
 func (lC *LinkControl) Listen() (net.Listener, error) {
-	log.Debug("func Listen()")
-
+	lC.log.Debug("func Listen()")
 	var err error
 	var ln net.Listener
 
@@ -95,11 +104,11 @@ func (lC *LinkControl) Listen() (net.Listener, error) {
 		}
 		ln, err = net.Listen(network, lC.linkDesc.address)
 		if err == nil {
-			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Created listener with: %s", ln.Addr().String())
+			lC.log.Debugf("Created listener with: %s", ln.Addr().String())
 			return ln, nil
 		}
 
-		log.WithField("ID=", lC.linkDesc.linkID).Errorf("Error listen: %s. Reconnecting after %d milliseconds.", err.Error(), secToRecon/1000000.0)
+		lC.log.Errorf("Error listen: %s. Reconnecting after %d milliseconds.", err.Error(), secToRecon/1000000.0)
 		ticker := time.NewTicker(secToRecon)
 
 		select {
@@ -116,13 +125,13 @@ func (lC *LinkControl) Listen() (net.Listener, error) {
 
 		case command := <-lC.commandCh:
 			{
-				log.Debugf("func Listen(): got command %s", command.cmd)
+				lC.log.Debugf("func Listen(): got command %s", command.cmd)
 				if command.cmd == quitControlLink {
 					lC.isExiting = true
-					log.WithField("ID=", lC.linkDesc).Info("Got quit commant. Closing link")
+					lC.log.Debug("Got quit commant. Closing link")
 					return nil, ErrQuitLinkRequested
 				}
-				log.WithField("ID=", lC.linkDesc.linkID).Warnf("Got impermissible command %s. Ignored.", command)
+				lC.log.Warnf("Got impermissible command %s. Ignored.", command)
 			}
 		}
 	}
@@ -132,18 +141,18 @@ func (lC *LinkControl) Accept(ln net.Listener) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.WithField("ID=", lC.linkDesc.linkID).Errorf("Error accept: %s", err.Error())
+			lC.log.Errorf("Error accept: %s", err.Error())
 			lC.NotifyErrorAccept(err)
 			return
 		}
-		log.WithField("ID=", lC.linkDesc.linkID).Debug("New client")
+		lC.log.Debugf("Accept: new client %s", conn.RemoteAddr().String())
 
-		go lC.InitLinkActive(conn)
+		go lC.initLinkActive(conn)
 	}
 }
 
 func (lC *LinkControl) Dial() (net.Conn, error) {
-	log.Debug("func Dial()")
+	lC.log.Debug("func Dial()")
 
 	var err error
 	var conn net.Conn
@@ -157,11 +166,11 @@ func (lC *LinkControl) Dial() (net.Conn, error) {
 		}
 		conn, err = net.Dial(network, lC.linkDesc.address)
 		if err == nil {
-			log.WithField("ID=", lC.linkDesc.linkID).Debugf("Established connection with: %s", conn.RemoteAddr().String())
+			lC.log.Debugf("Established connection with: %s", conn.RemoteAddr().String())
 			//lC.InitLinkActive(conn)
 			return conn, nil
 		}
-		log.WithField("ID=", lC.linkDesc.linkID).Errorf("Error dial: %s. Reconnecting after %d milliseconds", err.Error(), secToRecon/1000000.0)
+		lC.log.Errorf("Error dial: %s. Reconnecting after %d milliseconds", err.Error(), secToRecon/1000000.0)
 		ticker := time.NewTicker(secToRecon)
 
 		select {
@@ -178,14 +187,14 @@ func (lC *LinkControl) Dial() (net.Conn, error) {
 
 		case command := <-lC.commandCh:
 			{
-				log.Debugf("func Dial(): got command %s", command)
+				log.Debugf("Dial: got command %+v", command)
 				if command.cmd == quitControlLink {
 					lC.isExiting = true
-					log.WithField("ID=", lC.linkDesc).Info("Got quit commant. Closing link")
+					lC.log.Debug("Dial: Got quit commant. Closing link")
 					//return nil, ErrQuitLinkRequested
 					return nil, err
 				}
-				log.WithField("ID=", lC.linkDesc.linkID).Warnf("Got impermissible command %s. Ignored.", command)
+				lC.log.Warnf("Got unknown command %+v. Ignored.", command)
 			}
 		}
 	}
@@ -196,7 +205,7 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 		select {
 		case command := <-lC.commandCh:
 			if command.cmd == quitControlLink {
-				log.Debug("linkControl: quit received")
+				lC.log.Debugf("WaitCommandServer: quit received")
 				lC.isExiting = true
 				conn.Close()
 				lC.WaitExit()
@@ -204,12 +213,12 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 				return true
 			}
 			if command.cmd == errorControlLinkAccept {
-				log.Error(command.err)
+				lC.log.Errorf("WaitCommandServer: error accept %s", command.err)
 				conn.Close()
 				return false
 			}
 			if command.cmd == errorControlLinkRead {
-				log.Error(command.err)
+				lC.log.Errorf("WaitCommandServer: error read %s", command.err)
 				//continue
 			}
 		}
@@ -226,7 +235,7 @@ func (lC *LinkControl) WaitExit() {
 		case _ = <-timeout.C:
 			return
 		case command := <-lC.commandCh:
-			log.Debugf("WaitExit: cmd %+v", command)
+			lC.log.Debugf("WaitExit: cmd %+v", command)
 			return
 		}
 	}
@@ -237,43 +246,50 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 	select {
 	case command := <-lC.commandCh:
 		if command.cmd == quitControlLink {
-			log.Debugf("linkControl: quit received %s", lC.getId())
+			lC.log.Debugf("linkControl: quit received %s", lC.getId())
 			lC.isExiting = true
 			conn.Close()
 			lC.WaitExit()
 			return true
 		}
 		if command.cmd == errorControlLinkRead {
-			log.Errorf("Error: %s", command.err)
+			lC.log.Errorf("Error: %s", command.err)
 			conn.Close()
 			return false
 		}
-		log.Warnf("linkControl: received something weird %d", command.cmd)
+		lC.log.Warnf("linkControl: received something weird %d", command.cmd)
 		conn.Close()
 		return false
 	}
 }
 
-func initLinkActive(lCntl *LinkControl, conn net.Conn) {
+func (lC *LinkControl) initLinkActive(conn net.Conn) {
+
+	id := lC.getId() + ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
+	lC.log.Debugf("InitLinkActive: %s", id)
 
 	linkActive := LinkActive{
 		conn:         conn,
-		linkDesc:     lCntl.getLinkDesc(),
-		LinkActiveID: lCntl.getId() + ":" + conn.RemoteAddr().String(),
+		linkDesc:     lC.getLinkDesc(),
+		LinkActiveID: id,
 		commandCh:    make(chan cmdActiveLink),
-		linkControl:  *lCntl,
+		linkControl:  lC,
+		log:          slf.WithContext("LinkActive").WithFields(slf.Fields{"ID": id}),
 	}
 
-	log.Debug(lCntl.getLinkDesc().handler)
+	handlerName := lC.getLinkDesc().handler
+	linkActive.log.Debugf("handler: %s", handlerName)
 
-	if _, ok := handlers[lCntl.getLinkDesc().handler]; !ok {
-		log.Error("No handler! Closing linkControl")
+	hFactory, ok := handlers[handlerName]
+	if !ok {
+		linkActive.log.Errorf("initLinkActive: handler %s not found, closing connection", handlerName)
 		conn.Close()
-		lCntl.NotifyErrorRead(fmt.Errorf("Error: " + "No handler! Closing linkControl"))
+		lC.NotifyErrorRead(fmt.Errorf("initLinkActive: handler %s not found, closing connection", handlerName))
+		return
 	}
 
-	node := lCntl.getNode()
-	h := handlers[lCntl.getLinkDesc().handler].InitHandler(&linkActive, node)
+	node := lC.getNode()
+	h := hFactory.InitHandler(&linkActive, node)
 	linkActive.handler = h
 
 	node.RegisterLinkActive(&linkActive)
@@ -281,54 +297,58 @@ func initLinkActive(lCntl *LinkControl, conn net.Conn) {
 	go linkActive.WaitCommand(conn)
 	linkActive.handler.OnConnect()
 	linkActive.Read()
-	log.Debug("initLinkActive exiting")
 	//linkActive.handler.OnDisconnect()
 
 	node.UnregisterLinkActive(&linkActive)
+	linkActive.log.Debug("initLinkActive exiting")
 }
 
+/*
 func (lC *LinkControl) InitLinkActive(conn net.Conn) {
 	log.Debug("func InitLinkActive")
 	initLinkActive(lC, conn)
 }
+*/
 
 func (lC *LinkControl) WorkClient() {
 
 	for {
+		lC.log.Debug("WorkClient: -------------------------------------")
 		conn, err := lC.Dial()
 		if err != nil {
-			log.Errorf("Dial error: %s", err.Error())
+			lC.log.Errorf("WorkClient: dial error: %s", err.Error())
 			break
 		}
 
-		go lC.InitLinkActive(conn)
+		go lC.initLinkActive(conn)
 		isExiting := lC.WaitCommandClient(conn)
 		if isExiting {
-			log.Debug("isExiting client")
+			lC.log.Debug("WorkClient: isExiting client")
 			break
 		}
-		log.Debugf("reconnect %s", lC.getId())
-
+		lC.log.Debug("WorkClient: reconnect")
 	}
 
-	log.Debugf("WorkClient exit %s", lC.getId())
+	lC.log.Debug("WorkClient exit")
 }
 
 func (lC *LinkControl) WorkServer() {
 
 	for {
+		lC.log.Debug("WorkServer: -------------------------------------")
 		ln, err := lC.Listen()
 		if err != nil {
-			log.Errorf("Listen error: %s", err.Error())
+			lC.log.Errorf("WorkServer: listen error %s", err.Error())
 			return
 		}
 		go lC.Accept(ln)
 
 		isExiting := lC.WaitCommandServer(ln)
 		if isExiting {
+			lC.log.Debug("WorkClient: isExiting server")
 			break
 		}
 	}
 
-	log.Debugf("WorkServer exit %s", lC.getId())
+	lC.log.Debug("WorkServer: exit")
 }

@@ -3,7 +3,8 @@ package transport
 import (
 	"bufio"
 	"net"
-	"strings"
+
+	"github.com/ventu-io/slf"
 )
 
 // LinkActive initialize LinkStater interface when
@@ -15,15 +16,20 @@ type LinkActive struct {
 	handler      Handler
 	//parser       *parser.Parser
 	commandCh   chan cmdActiveLink
-	linkControl LinkControl
+	linkControl *LinkControl
+	log         slf.Logger
 }
 
 func (lA *LinkActive) Id() string {
 	return lA.LinkActiveID
 }
 
+func (lA *LinkActive) Mode() int {
+	return lA.linkControl.Mode()
+}
+
 func (lA *LinkActive) Close() {
-	log.Info("(func LinkActive Close()")
+	lA.log.Info("Close()")
 	lA.commandCh <- cmdActiveLink{
 		cmd: quitLinkActive,
 	}
@@ -41,7 +47,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 		select {
 		case command := <-lA.commandCh:
 			{
-				log.Debugf("got command=%s", command.cmd.String())
+				lA.log.Debugf("got command=%s", command.cmd.String())
 				if command.cmd == quitLinkActive {
 					conn.Close()
 					return
@@ -61,27 +67,27 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 
 func (lA *LinkActive) Write(msg []byte) error {
 
-	log.Info("(lSub *LinkActive)Write")
+	//lA.log.Debug("Write")
 	lA.conn.Write(msg)
 	return nil
 }
 
 //func (lA *LinkActive) Read(b []byte) error {
 func (lA *LinkActive) Read() {
-	log.Info("(lSub *LinkActive)Read")
+	lA.log.Debug("Read")
 
 	//	buf := make([]byte, lA.linkDesc.bufSize)
 
 	for {
 		message, err := bufio.NewReader(lA.conn).ReadBytes('\n')
 		if err != nil {
-			log.WithField("ID=", lA.LinkActiveID).Errorf("Error read: %s", err.Error())
+			lA.log.Errorf("Error read: %s", err.Error())
 			lA.linkControl.NotifyErrorRead(err)
-			log.Warn("exiting")
+			lA.log.Warn("exiting")
 			return
 		}
-		msgStr := strings.TrimSpace(string(message))
-		log.WithField("ID=", lA.LinkActiveID).Debugf("Message Received: %s", msgStr)
+		//msgStr := strings.TrimSpace(string(message))
+		//lA.log.Debugf("Message Received: %s", msgStr)
 		lA.handler.OnRead(message)
 	}
 }

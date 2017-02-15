@@ -23,7 +23,7 @@ func (c commandNode) String() string {
 
 type NodeCommand struct {
 	cmd    commandNode
-	ctrl   LinkControl
+	ctrl   *LinkControl
 	active *LinkActive
 	msg    string
 }
