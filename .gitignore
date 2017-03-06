@@ -1,5 +1,5 @@
-example/logs/
-example/example
-example/*.config
-example2/
+test-programs/*/logs/
+test-programs/*/*.config
+
+test-programs/transport/transport
 
