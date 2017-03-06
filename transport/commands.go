@@ -7,25 +7,6 @@ const (
 
 type CommandID int
 
-func (c CommandID) String() string {
-	switch c {
-	case 0:
-		return "registerControl"
-	case 1:
-		return "unregisterControl"
-	case 2:
-		return "registerActive"
-	case 3:
-		return "unregisterActive"
-	case 4:
-		return "stop"
-	case 5:
-		return "sendMessage"
-	default:
-		return "unknown"
-	}
-}
-
 const (
 	registerControl CommandID = iota
 	unregisterControl

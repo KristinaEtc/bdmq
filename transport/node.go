@@ -41,6 +41,10 @@ func NewNode() (n *Node) {
 	return
 }
 
+func (n *Node) AddCmdProcessor(processer CommandProcesser) {
+	n.cmdProcessers = append(n.cmdProcessers, processer)
+}
+
 func checkLinkMode(mode string) (int, error) {
 	switch mode {
 	case "client":
@@ -120,7 +124,7 @@ func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func UnregisterLinkControl() %s", lControl.getId())
 	n.commandCh <- &NodeCommandControlLink{
-		NodeCommand: NodeCommand{cmd: registerControl},
+		NodeCommand: NodeCommand{cmd: unregisterControl},
 		ctrl:        lControl,
 	}
 }
@@ -129,7 +133,7 @@ func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 
 	log.Debugf("func UnregisterLinkActive() %s", lActive.Id())
 	n.commandCh <- &NodeCommandActiveLink{
-		NodeCommand: NodeCommand{cmd: registerActive},
+		NodeCommand: NodeCommand{cmd: unregisterActive},
 		active:      lActive,
 	}
 }
@@ -155,6 +159,7 @@ func (n *Node) MainLoop() {
 
 	for {
 		cmd := <-n.commandCh
+		log.Debugf("MainLoop: get command %+v", cmd)
 		correctCmd = false
 		for _, processer := range n.cmdProcessers {
 			known, isExiting = processer.ProcessCommand(cmd)

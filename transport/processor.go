@@ -6,6 +6,7 @@ type Command interface {
 
 type CommandProcesser interface {
 	ProcessCommand(Command) (bool, bool)
+	CommandToString(CommandID) string
 }
 
 type DefaultProcesser struct {
@@ -14,7 +15,7 @@ type DefaultProcesser struct {
 
 func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting bool) {
 	var id = cmd.GetCommandID()
-	log.Debugf("process command=%v", id)
+	log.Debugf("process command=%+v", cmd)
 
 	n := dP.node
 
@@ -57,7 +58,7 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 			}
 			log.Debugf("[unregisterActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
 
-			return false, n.hasActiveLinks == 0 && n.hasLinks == 0
+			return true, n.hasActiveLinks == 0 && n.hasLinks == 0
 
 			//n.hasActiveLinks = len(n.LinkActives) > 0
 			//return !(n.hasLinks || n.hasActiveLinks)
@@ -112,7 +113,7 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 					go closeHelper(lC)
 				}
 			}
-			return false, false
+			return true, false
 		}
 	case sendMessageNode:
 		{
@@ -137,5 +138,24 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 			//log.Warnf("Unknown command: %s", cmdMsg.cmd)
 			return false, false
 		}
+	}
+}
+
+func (dP *DefaultProcesser) CommandToString(c CommandID) string {
+	switch c {
+	case 0:
+		return "registerControl"
+	case 1:
+		return "unregisterControl"
+	case 2:
+		return "registerActive"
+	case 3:
+		return "unregisterActive"
+	case 4:
+		return "stop"
+	case 5:
+		return "sendMessage"
+	default:
+		return "unknown"
 	}
 }

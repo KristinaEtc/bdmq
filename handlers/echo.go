@@ -42,6 +42,7 @@ func (h *HandlerEcho) OnRead(msg []byte) {
 func (h *HandlerEcho) OnConnect() error {
 
 	log.Debugf("OnConnect %s %d", h.link.Id(), h.link.Mode())
+
 	cnt := 65536
 	tmp := make([]byte, cnt)
 	for i := 0; i < cnt; i++ {
