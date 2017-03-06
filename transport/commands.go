@@ -5,9 +5,9 @@ const (
 	ClientMode
 )
 
-type commandNode int
+type CommandID int
 
-func (c commandNode) String() string {
+func (c CommandID) String() string {
 	switch c {
 	case 0:
 		return "registerControl"
@@ -26,21 +26,37 @@ func (c commandNode) String() string {
 	}
 }
 
-type NodeCommand struct {
-	cmd    commandNode
-	ctrl   *LinkControl
-	active *LinkActive
-	msg    string
-}
-
 const (
-	registerControl commandNode = iota
+	registerControl CommandID = iota
 	unregisterControl
 	registerActive
 	unregisterActive
 	stopNode
 	sendMessageNode
 )
+
+type NodeCommand struct {
+	cmd CommandID
+}
+
+func (nC *NodeCommand) GetCommandID() CommandID {
+	return nC.cmd
+}
+
+type NodeCommandControlLink struct {
+	NodeCommand
+	ctrl *LinkControl
+}
+
+type NodeCommandActiveLink struct {
+	NodeCommand
+	active *LinkActive
+}
+
+type NodeCommandSendMessage struct {
+	NodeCommand
+	msg string
+}
 
 type cmdActiveLink struct {
 	cmd commandActiveLink

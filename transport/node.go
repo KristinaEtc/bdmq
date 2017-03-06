@@ -20,7 +20,7 @@ type Node struct {
 	LinkDescs      map[string]*LinkDesc
 	LinkActives    map[string]*LinkActive
 	LinkControls   map[string]*LinkControl
-	commandCh      chan *NodeCommand
+	commandCh      chan Command
 	hasLinks       int
 	hasActiveLinks int
 	cmdProcessers  []CommandProcesser
@@ -31,7 +31,7 @@ func NewNode() (n *Node) {
 		LinkDescs:     make(map[string]*LinkDesc),
 		LinkControls:  make(map[string]*LinkControl),
 		LinkActives:   make(map[string]*LinkActive),
-		commandCh:     make(chan *NodeCommand),
+		commandCh:     make(chan Command),
 		cmdProcessers: make([]CommandProcesser, 0),
 	}
 
@@ -102,42 +102,42 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 func (n *Node) RegisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func RegisterLinkControl() %s", lControl.getId())
-	n.commandCh <- &NodeCommand{
-		cmd:  registerControl,
-		ctrl: lControl,
+	n.commandCh <- &NodeCommandControlLink{
+		NodeCommand: NodeCommand{cmd: registerControl},
+		ctrl:        lControl,
 	}
 }
 
 func (n *Node) RegisterLinkActive(lActive *LinkActive) {
 	log.Debugf("func RegisterLinkActive() %s", lActive.Id())
-	n.commandCh <- &NodeCommand{
-		cmd:    registerActive,
-		active: lActive,
+	n.commandCh <- &NodeCommandActiveLink{
+		NodeCommand: NodeCommand{cmd: registerActive},
+		active:      lActive,
 	}
 }
 
 func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func UnregisterLinkControl() %s", lControl.getId())
-	n.commandCh <- &NodeCommand{
-		cmd:  unregisterControl,
-		ctrl: lControl,
+	n.commandCh <- &NodeCommandControlLink{
+		NodeCommand: NodeCommand{cmd: registerControl},
+		ctrl:        lControl,
 	}
 }
 
 func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 
 	log.Debugf("func UnregisterLinkActive() %s", lActive.Id())
-	n.commandCh <- &NodeCommand{
-		cmd:    unregisterActive,
-		active: lActive,
+	n.commandCh <- &NodeCommandActiveLink{
+		NodeCommand: NodeCommand{cmd: registerActive},
+		active:      lActive,
 	}
 }
 
 func (n *Node) SendMessage(activeLinkId string, msg string) {
-	n.commandCh <- &NodeCommand{
-		cmd: sendMessageNode,
-		msg: msg,
+	n.commandCh <- &NodeCommandSendMessage{
+		NodeCommand: NodeCommand{cmd: sendMessageNode},
+		msg:         msg,
 	}
 }
 
@@ -149,13 +149,28 @@ func (n *Node) MainLoop() {
 
 	log.Debug("Node.MainLoop() enter")
 
+	var correctCmd bool
+	var isExiting bool
+	var known bool
+
 	for {
 		cmd := <-n.commandCh
+		correctCmd = false
 		for _, processer := range n.cmdProcessers {
-			isExiting := processer.ProcessCommand(cmd)
+			known, isExiting = processer.ProcessCommand(cmd)
+			if known {
+				correctCmd = true
+				break
+			}
 			if isExiting {
 				break
 			}
+		}
+		if !correctCmd {
+			log.Errorf("Got unknown command: %v", cmd)
+		}
+		if isExiting {
+			break
 		}
 	}
 	log.Debug("Node.MainLoop() exit")
