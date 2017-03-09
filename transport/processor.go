@@ -129,8 +129,9 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 					lA.SendMessage(cmdMessage.msg)
 					//return false
 				}
+			} else {
+				log.Debug("SendMessage: no active links")
 			}
-			log.Debug("SendMessage: no active links")
 			return true, false
 		}
 	default:
