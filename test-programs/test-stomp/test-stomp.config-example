@@ -5,14 +5,14 @@
         "LinkID": "ID2",
         "Address": "127.0.0.1:7777",
         "Mode": "client",
-        "Handler": "testHandler",
+        "Handler": "stompHandler",
         "BufSize": 1024
     },
     {
         "LinkID": "ID1",
         "Address": "localhost:7777",
         "Mode": "server",
-        "Handler": "echoHandler",
+        "Handler": "stompHandler",
         "BufSize": 1024
       }
   ],
