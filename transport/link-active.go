@@ -24,6 +24,10 @@ func (lA *LinkActive) Id() string {
 	return lA.LinkActiveID
 }
 
+func (lA *LinkActive) Conn() net.Conn {
+	return lA.conn
+}
+
 func (lA *LinkActive) Mode() int {
 	return lA.linkControl.Mode()
 }
@@ -67,7 +71,6 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 
 func (lA *LinkActive) Write(msg []byte) error {
 
-	//lA.log.Debug("Write")
 	lA.conn.Write(msg)
 	return nil
 }
@@ -77,6 +80,10 @@ func (lA *LinkActive) Read() {
 	lA.log.Debug("Read")
 
 	//	buf := make([]byte, lA.linkDesc.bufSize)
+	if lA.linkDesc.handler == "stomp" {
+		log.Debug("using handler stomp")
+		lA.handler.OnRead(nil)
+	}
 
 	for {
 		message, err := bufio.NewReader(lA.conn).ReadBytes('\n')

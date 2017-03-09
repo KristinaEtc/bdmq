@@ -2,6 +2,7 @@ package transport
 
 import (
 	"math/rand"
+	"net"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type LinkWriter interface {
 	Write([]byte) error
 	Close()
 	Id() string
+	Conn() net.Conn
 }
 
 type LinkCloser interface {

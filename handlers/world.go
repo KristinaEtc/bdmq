@@ -1,9 +1,8 @@
 package handlers
 
 import (
-	"time"
-
 	"strings"
+	"time"
 
 	"github.com/KristinaEtc/bdmq/transport"
 )

@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KristinaEtc/bdmq/handlers"
 	"github.com/KristinaEtc/bdmq/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
@@ -40,8 +39,7 @@ func main() {
 	config.ReadGlobalConfig(&globalOpt, "stomp.go")
 	log.Debugf("config=%v", globalOpt.Links)
 
-	transport.RegisterHandlerFactory("echoHandler", handlers.HandlerEchoFactory{})
-	transport.RegisterHandlerFactory("testHandler", handlers.HandlerTestFactory{})
+	transport.RegisterHandlerFactory("stompHandler", stomp.HandlerStompFactory{})
 
 	n := stomp.NewNode()
 
