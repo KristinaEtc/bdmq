@@ -223,7 +223,6 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 			}
 		}
 	}
-
 }
 
 func (lC *LinkControl) WaitExit() {
@@ -265,7 +264,7 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 
 func (lC *LinkControl) initLinkActive(conn net.Conn) {
 
-	id := lC.getId() + ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
+	id := lC.getId() //+ ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
 	lC.log.Debugf("InitLinkActive: %s", id)
 
 	linkActive := LinkActive{
@@ -275,6 +274,17 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 		commandCh:    make(chan cmdActiveLink),
 		linkControl:  lC,
 		log:          slf.WithContext("LinkActive").WithFields(slf.Fields{"ID": id}),
+		quequeName:   lC.linkDesc.quequeName,
+	}
+
+	linkActive.log.Debugf("frame processer: %s", lC.getLinkDesc().frameProcessor)
+
+	frameProcessorFactory, ok := frameProcessors[lC.linkDesc.frameProcessor]
+	if !ok {
+		linkActive.log.Warn("initLinkActive: frame processor not found, will be used default")
+		linkActive.FrameProcessor = dFrameProcessorFactory.InitFrameProcessor(linkActive, conn, conn, linkActive.log)
+	} else {
+		linkActive.FrameProcessor = frameProcessorFactory.InitFrameProcessor(linkActive, conn, conn, linkActive.log)
 	}
 
 	handlerName := lC.getLinkDesc().handler
@@ -295,7 +305,7 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	node.RegisterLinkActive(&linkActive)
 
 	go linkActive.WaitCommand(conn)
-	linkActive.handler.OnConnect()
+	linkActive.handler.OnConnect(linkActive.quequeName)
 	linkActive.Read()
 	//linkActive.handler.OnDisconnect()
 

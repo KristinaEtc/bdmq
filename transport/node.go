@@ -8,11 +8,21 @@ import (
 )
 
 type LinkDesc struct {
-	linkID  string
-	address string
-	mode    string
-	handler string
-	bufSize int
+<<<<<<< Updated upstream
+	linkID         string
+	address        string
+	mode           string
+	handler        string
+	bufSize        int
+	frameProcessor string
+=======
+	linkID     string
+	address    string
+	mode       string
+	handler    string
+	bufSize    int
+	quequeName string
+>>>>>>> Stashed changes
 }
 
 type Node struct {
@@ -20,10 +30,11 @@ type Node struct {
 	LinkDescs      map[string]*LinkDesc
 	LinkActives    map[string]*LinkActive
 	LinkControls   map[string]*LinkControl
-	commandCh      chan Command
+	CommandCh      chan Command
 	hasLinks       int
 	hasActiveLinks int
 	cmdProcessers  []CommandProcesser
+	//	Subscribtions  []*chan Message
 }
 
 func NewNode() (n *Node) {
@@ -31,7 +42,7 @@ func NewNode() (n *Node) {
 		LinkDescs:     make(map[string]*LinkDesc),
 		LinkControls:  make(map[string]*LinkControl),
 		LinkActives:   make(map[string]*LinkActive),
-		commandCh:     make(chan Command),
+		CommandCh:     make(chan Command),
 		cmdProcessers: make([]CommandProcesser, 0),
 	}
 
@@ -60,10 +71,19 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 	for _, l := range lDescJSON {
 
 		lDesc := &LinkDesc{
+<<<<<<< Updated upstream
 			address: l.Address,
 			linkID:  l.LinkID,
 			mode:    l.Mode,
 			handler: l.Handler,
+			frameProcessor: l.FrameProcessor,
+=======
+			address:    l.Address,
+			linkID:     l.LinkID,
+			mode:       l.Mode,
+			handler:    l.Handler,
+			quequeName: l.QuequeName,
+>>>>>>> Stashed changes
 		}
 		n.LinkDescs[l.LinkID] = lDesc
 	}
@@ -106,16 +126,16 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 func (n *Node) RegisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func RegisterLinkControl() %s", lControl.getId())
-	n.commandCh <- &NodeCommandControlLink{
-		NodeCommand: NodeCommand{cmd: registerControl},
+	n.CommandCh <- &NodeCommandControlLink{
+		NodeCommand: NodeCommand{Cmd: registerControl},
 		ctrl:        lControl,
 	}
 }
 
 func (n *Node) RegisterLinkActive(lActive *LinkActive) {
 	log.Debugf("func RegisterLinkActive() %s", lActive.Id())
-	n.commandCh <- &NodeCommandActiveLink{
-		NodeCommand: NodeCommand{cmd: registerActive},
+	n.CommandCh <- &NodeCommandActiveLink{
+		NodeCommand: NodeCommand{Cmd: registerActive},
 		active:      lActive,
 	}
 }
@@ -123,8 +143,8 @@ func (n *Node) RegisterLinkActive(lActive *LinkActive) {
 func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 
 	log.Debugf("func UnregisterLinkControl() %s", lControl.getId())
-	n.commandCh <- &NodeCommandControlLink{
-		NodeCommand: NodeCommand{cmd: unregisterControl},
+	n.CommandCh <- &NodeCommandControlLink{
+		NodeCommand: NodeCommand{Cmd: unregisterControl},
 		ctrl:        lControl,
 	}
 }
@@ -132,16 +152,24 @@ func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 
 	log.Debugf("func UnregisterLinkActive() %s", lActive.Id())
-	n.commandCh <- &NodeCommandActiveLink{
-		NodeCommand: NodeCommand{cmd: unregisterActive},
+	n.CommandCh <- &NodeCommandActiveLink{
+		NodeCommand: NodeCommand{Cmd: unregisterActive},
 		active:      lActive,
 	}
 }
 
+<<<<<<< Updated upstream
 func (n *Node) SendMessage(activeLinkId string, msg string) {
+	n.CommandCh <- &NodeCommandSendMessage{
+		NodeCommand: NodeCommand{Cmd: sendMessageNode},
+		msg:         msg,
+=======
+func (n *Node) SendMessage(quequeName string, message string) {
 	n.commandCh <- &NodeCommandSendMessage{
 		NodeCommand: NodeCommand{cmd: sendMessageNode},
-		msg:         msg,
+		quequeName:  quequeName,
+		msg:         message,
+>>>>>>> Stashed changes
 	}
 }
 
@@ -158,7 +186,7 @@ func (n *Node) MainLoop() {
 	var known bool
 
 	for {
-		cmd := <-n.commandCh
+		cmd := <-n.CommandCh
 		log.Debugf("MainLoop: get command %+v", cmd)
 		correctCmd = false
 		for _, processer := range n.cmdProcessers {
@@ -205,8 +233,8 @@ func (n *Node) Stop() {
 	log.Debug("Node.Stop()")
 
 	//todo: add checking if channel is exist
-	n.commandCh <- &NodeCommand{
-		cmd: stopNode,
+	n.CommandCh <- &NodeCommand{
+		Cmd: stopNode,
 	}
 
 	//TODO: wait with WaitGroup()

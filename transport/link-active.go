@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"bufio"
 	"net"
 
 	"github.com/ventu-io/slf"
@@ -15,9 +14,17 @@ type LinkActive struct {
 	LinkActiveID string
 	handler      Handler
 	//parser       *parser.Parser
+<<<<<<< Updated upstream
+	commandCh      chan cmdActiveLink
+	linkControl    *LinkControl
+	log            slf.Logger
+	FrameProcessor FrameProcessor
+=======
 	commandCh   chan cmdActiveLink
 	linkControl *LinkControl
 	log         slf.Logger
+	quequeName  string
+>>>>>>> Stashed changes
 }
 
 func (lA *LinkActive) Id() string {
@@ -32,6 +39,10 @@ func (lA *LinkActive) Mode() int {
 	return lA.linkControl.Mode()
 }
 
+func (lA *LinkActive) getHandler() Handler {
+	return lA.handler
+}
+
 func (lA *LinkActive) Close() {
 	lA.log.Info("Close()")
 	lA.commandCh <- cmdActiveLink{
@@ -39,7 +50,7 @@ func (lA *LinkActive) Close() {
 	}
 }
 
-func (lA *LinkActive) SendMessage(msg string) {
+func (lA *LinkActive) SendMessageActive(msg []byte) {
 	lA.commandCh <- cmdActiveLink{
 		cmd: sendMessageActive,
 		msg: msg,
@@ -62,7 +73,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 					//lA.linkControl.NotifyError(errors.New("Error reading active "))
 				}*/
 				if command.cmd == sendMessageActive {
-					lA.handler.OnWrite([]byte(command.msg))
+					lA.Write(command.msg)
 				}
 			}
 		}
@@ -71,6 +82,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 
 func (lA *LinkActive) Write(msg []byte) error {
 
+	lA.log.Warn("dProcessor Write")
 	lA.conn.Write(msg)
 	return nil
 }
@@ -79,22 +91,13 @@ func (lA *LinkActive) Write(msg []byte) error {
 func (lA *LinkActive) Read() {
 	lA.log.Debug("Read")
 
-	//	buf := make([]byte, lA.linkDesc.bufSize)
-	if lA.linkDesc.handler == "stomp" {
-		log.Debug("using handler stomp")
-		lA.handler.OnRead(nil)
+	err := lA.FrameProcessor.Read()
+	if err != nil {
+		lA.linkControl.NotifyErrorRead(err)
+		lA.linkControl.log.Warn("exiting")
 	}
-
-	for {
-		message, err := bufio.NewReader(lA.conn).ReadBytes('\n')
-		if err != nil {
-			lA.log.Errorf("Error read: %s", err.Error())
-			lA.linkControl.NotifyErrorRead(err)
-			lA.log.Warn("exiting")
-			return
-		}
-		//msgStr := strings.TrimSpace(string(message))
-		//lA.log.Debugf("Message Received: %s", msgStr)
-		lA.handler.OnRead(message)
-	}
+	//lA.Handler.OnRead(message)
+	//msgStr := strings.TrimSpace(string(message))
+	//lA.log.Debugf("Message Received: %s", msgStr)
+	//	lA.Handler.OnRead(message)
 }

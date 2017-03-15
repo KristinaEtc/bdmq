@@ -1,12 +1,16 @@
 package stomp
 
-import "github.com/KristinaEtc/bdmq/transport"
+import (
+	"github.com/KristinaEtc/bdmq/frame"
+	"github.com/KristinaEtc/bdmq/transport"
+)
 
-type StompCommandTestLink struct {
+type StompCommandSendFrame struct {
 	transport.NodeCommand
-	message string
+	frame        frame.Frame
+	linkActiveID string
 }
 
 const (
-	testCommand transport.CommandID = 100
+	stompSendFrameCommand transport.CommandID = 100
 )

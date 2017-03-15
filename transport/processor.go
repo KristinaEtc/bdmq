@@ -10,12 +10,13 @@ type CommandProcesser interface {
 }
 
 type DefaultProcesser struct {
-	node *Node
+	node    *Node
+	handler Handler
 }
 
 func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting bool) {
 	var id = cmd.GetCommandID()
-	log.Debugf("process command=%+v", cmd)
+	log.Debugf("process command=%+v, cmd_id=%s", cmd, dP.CommandToString(cmd.GetCommandID()))
 
 	n := dP.node
 
@@ -115,6 +116,30 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 			}
 			return true, false
 		}
+	case sendMessageByIDNode:
+		{
+			cmdMessage, ok := cmd.(*NodeCommandSendMessage)
+			if !ok {
+				log.Errorf("Invalid command type %v", cmd)
+				return false, true
+			}
+
+			var quequeExist bool
+
+			if len(n.LinkActives) > 0 {
+				for _, lA := range n.LinkActives {
+					if lA.quequeName == cmdMessage.quequeName {
+						log.Debugf("Sending to queque %s", lA.quequeName)
+						lA.SendMessage(cmdMessage.msg)
+						quequeExist = true
+					}
+				}
+			}
+			if !quequeExist {
+				log.Debug("SendMessage: no active links")
+			}
+			return true, false
+		}
 	case sendMessageNode:
 		{
 			cmdMessage, ok := cmd.(*NodeCommandSendMessage)
@@ -123,13 +148,24 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 				return false, true
 			}
 
+			var quequeExist bool
+
 			if len(n.LinkActives) > 0 {
 				for _, lA := range n.LinkActives {
+<<<<<<< Updated upstream
 					log.Debug("for testing i'm choosing all active links")
-					lA.SendMessage(cmdMessage.msg)
+					lA.SendMessageActive([]byte(cmdMessage.msg))
 					//return false
+=======
+					if lA.quequeName == cmdMessage.quequeName {
+						log.Debugf("Sending to queque %s", lA.quequeName)
+						lA.SendMessage(cmdMessage.msg)
+						quequeExist = true
+					}
+>>>>>>> Stashed changes
 				}
-			} else {
+			}
+			if !quequeExist {
 				log.Debug("SendMessage: no active links")
 			}
 			return true, false

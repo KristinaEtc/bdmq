@@ -14,14 +14,15 @@ const (
 	unregisterActive
 	stopNode
 	sendMessageNode
+	sendMessageByIDNode
 )
 
 type NodeCommand struct {
-	cmd CommandID
+	Cmd CommandID
 }
 
 func (nC *NodeCommand) GetCommandID() CommandID {
-	return nC.cmd
+	return nC.Cmd
 }
 
 type NodeCommandControlLink struct {
@@ -36,12 +37,13 @@ type NodeCommandActiveLink struct {
 
 type NodeCommandSendMessage struct {
 	NodeCommand
-	msg string
+	quequeName string
+	msg        string
 }
 
 type cmdActiveLink struct {
 	cmd commandActiveLink
-	msg string
+	msg []byte
 	err string
 }
 

@@ -12,7 +12,7 @@ var handlers HandlerFactories = make(map[string]HandlerFactory)
 
 type Handler interface {
 	OnRead([]byte)
-	OnConnect() error
+	OnConnect(string) error
 	OnWrite([]byte)
 }
 
