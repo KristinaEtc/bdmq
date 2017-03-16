@@ -9,11 +9,10 @@ import (
 // LinkActive initialize LinkStater interface when
 // connecting is ok
 type LinkActive struct {
-	conn         net.Conn
-	linkDesc     *LinkDesc
-	LinkActiveID string
-	handler      Handler
-	//parser       *parser.Parser
+	conn           net.Conn
+	linkDesc       *LinkDesc
+	LinkActiveID   string
+	handler        Handler
 	commandCh      chan cmdActiveLink
 	linkControl    *LinkControl
 	log            slf.Logger

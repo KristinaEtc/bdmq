@@ -42,7 +42,7 @@ func main() {
 	config.ReadGlobalConfig(&globalOpt, "stomp.go")
 	log.Debugf("config=%+v", globalOpt.Links)
 
-	transport.RegisterHandlerFactory("stompHandler", stomp.HandlerStompFactory{})
+	transport.RegisterHandlerFactory("stomp", stomp.HandlerStompFactory{})
 	transport.RegisterFrameProcessorFactory("stomp", frame.FactoryStomp{})
 	n := stomp.NewNode()
 
