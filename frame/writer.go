@@ -13,16 +13,17 @@ var (
 	nullSlice    = []byte{0}      // null character
 )
 
-// Writes STOMP frames to an underlying io.Writer.
+// Writer writes STOMP frames to an underlying io.Writer.
 type Writer struct {
 	writer *bufio.Writer
 }
 
-// Creates a new Writer object, which writes to an underlying io.Writer.
+// NewWriter creates a new Writer object, which writes to an underlying io.Writer.
 func NewWriter(writer io.Writer) *Writer {
 	return NewWriterSize(writer, 4096)
 }
 
+// NewWriterSize change  writer's buffer's size
 func NewWriterSize(writer io.Writer, bufferSize int) *Writer {
 	return &Writer{writer: bufio.NewWriterSize(writer, bufferSize)}
 }

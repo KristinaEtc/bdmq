@@ -16,8 +16,8 @@ const (
 )
 
 var (
-	ErrInvalidCommand     = errors.New("invalid command")
-	ErrInvalidFrameFormat = errors.New("invalid frame format")
+	errInvalidCommand     = errors.New("invalid command")
+	errInvalidFrameFormat = errors.New("invalid frame format")
 )
 
 // The Reader type reads STOMP frames from an underlying io.Reader.
@@ -68,7 +68,7 @@ func (r *Reader) Read() (*Frame, error) {
 		MESSAGE, RECEIPT, ERROR:
 		// valid command
 	default:
-		return nil, ErrInvalidCommand
+		return nil, errInvalidCommand
 	}
 
 	// read headers
@@ -86,7 +86,7 @@ func (r *Reader) Read() (*Frame, error) {
 		index := bytes.IndexByte(headerSlice, colon)
 		if index <= 0 {
 			// colon is missing or header name is zero length
-			return nil, ErrInvalidFrameFormat
+			return nil, errInvalidFrameFormat
 		}
 
 		name, err := unencodeValue(headerSlice[0:index])
@@ -124,7 +124,7 @@ func (r *Reader) Read() (*Frame, error) {
 			return nil, err
 		}
 		if terminator != 0 {
-			return nil, ErrInvalidFrameFormat
+			return nil, errInvalidFrameFormat
 		}
 	} else {
 		f.Body, err = r.reader.ReadBytes(nullByte)

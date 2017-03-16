@@ -16,8 +16,9 @@ import (
 
 // do not move
 
-var log = slf.WithContext("main.go")
+var log = slf.WithContext("main")
 
+// Global used for all configs.
 type Global struct {
 	MachineID string
 	Links     []transport.LinkDescFromJSON
@@ -39,10 +40,10 @@ var globalOpt = Global{
 func main() {
 
 	config.ReadGlobalConfig(&globalOpt, "stomp.go")
-	log.Debugf("config=%v", globalOpt.Links)
+	log.Debugf("config=%+v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("stompHandler", stomp.HandlerStompFactory{})
-	transport.RegisterFrameProcessorFactory("stomp", frame.StompFrameProcessorFactory{})
+	transport.RegisterFrameProcessorFactory("stomp", frame.FactoryStomp{})
 	n := stomp.NewNode()
 
 	err := n.InitLinkDesc(globalOpt.Links)

@@ -25,19 +25,19 @@ const (
 // too big to be represented by the time.Duration type.
 func ParseHeartBeat(heartBeat string) (time.Duration, time.Duration, error) {
 	if !heartBeatRegexp.MatchString(heartBeat) {
-		return 0, 0, ErrInvalidHeartBeat
+		return 0, 0, errInvalidHeartBeat
 	}
 	slice := strings.Split(heartBeat, ",")
 	value1, err := strconv.ParseInt(slice[0], 10, 64)
 	if err != nil {
-		return 0, 0, ErrInvalidHeartBeat
+		return 0, 0, errInvalidHeartBeat
 	}
 	value2, err := strconv.ParseInt(slice[1], 10, 64)
 	if err != nil {
-		return 0, 0, ErrInvalidHeartBeat
+		return 0, 0, errInvalidHeartBeat
 	}
 	if value1 > maxMilliseconds || value2 > maxMilliseconds {
-		return 0, 0, ErrInvalidHeartBeat
+		return 0, 0, errInvalidHeartBeat
 	}
 	return time.Duration(value1) * time.Millisecond,
 		time.Duration(value2) * time.Millisecond, nil

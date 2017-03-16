@@ -291,18 +291,15 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 		log:          slf.WithContext("LinkActive").WithFields(slf.Fields{"ID": id}),
 	}
 
-	linkActive.log.Debugf("frame processer: %s", lC.getLinkDesc().frameProcessor)
-
 	frameProcessorFactory, ok := frameProcessors[lC.linkDesc.frameProcessor]
 	if !ok {
-		linkActive.log.Warn("initLinkActive: frame processor not found, will be used default")
-		linkActive.FrameProcessor = dFrameProcessorFactory.initFrameProcessor(linkActive, conn, conn, linkActive.log)
+		linkActive.log.Warnf("initLinkActive: frame processor %s not found, will be used default", frameProcessorFactory)
+		linkActive.FrameProcessor = dFrameProcessorFactory.initFrameProcessor(linkActive, conn, conn)
 	} else {
-		linkActive.FrameProcessor = frameProcessorFactory.InitFrameProcessor(linkActive, conn, conn, linkActive.log)
+		linkActive.FrameProcessor = frameProcessorFactory.InitFrameProcessor(linkActive, conn, conn)
 	}
 
 	handlerName := lC.getLinkDesc().handler
-	linkActive.log.Debugf("handler: %s", handlerName)
 
 	hFactory, ok := handlers[handlerName]
 	if !ok {

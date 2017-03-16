@@ -10,7 +10,7 @@ type HandlerStompFactory struct {
 // InitHandler is a function of transport.HandlerFactory.
 func (h HandlerStompFactory) InitHandler(l transport.LinkWriter, n *transport.Node) transport.Handler {
 
-	log.Debugf("InitHandler")
+	log.Debugf("HandlerStompFactory.InitHandler() enter")
 	handler := &HandlerStomp{
 		link: l,
 		node: n,

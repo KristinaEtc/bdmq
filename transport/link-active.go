@@ -61,7 +61,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 		select {
 		case command := <-lA.commandCh:
 			{
-				lA.log.Debugf("got command=%s", command.cmd.String())
+				lA.log.Debugf("Command=[%s/%v]", command.cmd.String(), command.cmd)
 				if command.cmd == quitLinkActive {
 					conn.Close()
 					return
@@ -83,7 +83,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 // of method of interface LinkWriter.
 func (lA *LinkActive) Write(msg []byte) error {
 
-	lA.log.Warn("dProcessor Write")
+	lA.log.Debug("dProcessor Write() enter")
 	lA.conn.Write(msg)
 	return nil
 }
@@ -91,12 +91,11 @@ func (lA *LinkActive) Write(msg []byte) error {
 // Read calls method Read() from frameProcess interface.
 // It is an implementation of method of interface LinkWriter.
 func (lA *LinkActive) Read() {
-	lA.log.Debug("Read")
 
 	err := lA.FrameProcessor.Read()
 	if err != nil {
 		lA.linkControl.NotifyErrorRead(err)
-		lA.linkControl.log.Warn("exiting")
+		lA.linkControl.log.Warn("LinkActive.Read() exiting")
 	}
 	//lA.Handler.OnRead(message)
 	//msgStr := strings.TrimSpace(string(message))

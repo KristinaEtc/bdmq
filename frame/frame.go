@@ -1,6 +1,3 @@
-/*
-Package frame provides functionality for manipulating STOMP frames.
-*/
 package frame
 
 import (
@@ -12,65 +9,67 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-type StompFrameProcessorFactory struct {
+// FactoryStomp is a factory for creating ProcessorStomp
+type FactoryStomp struct {
 }
 
-var sFrameProcessorFactory StompFrameProcessorFactory
-
-type StompFrameProcessor struct {
+// ProcessorStomp is an interface for FrameProcessors
+type ProcessorStomp struct {
 	linkActive transport.LinkActive
 	Reader     *Reader
 	Writer     *Writer
 	log        slf.Logger
 }
 
-func (s StompFrameProcessorFactory) InitFrameProcessor(lActive transport.LinkActive, rd io.Reader, wd io.Writer, log slf.Logger) transport.FrameProcessor {
+// InitFrameProcessor creates a new entity of ProcessorStomp and adds it to Node process slice
+func (f FactoryStomp) InitFrameProcessor(lActive transport.LinkActive, rd io.Reader, wd io.Writer) transport.FrameProcessor {
 
-	log.Debugf("InitStompFrame")
-	sFrameProcessor := &StompFrameProcessor{
+	sFrameProcessor := &ProcessorStomp{
 		Writer:     NewWriter(wd),
 		Reader:     NewReader(rd),
-		log:        log,
+		log:        slf.WithContext("FrameProcessor").WithFields(slf.Fields{"ID": lActive.ID()}),
 		linkActive: lActive,
 	}
 
 	return sFrameProcessor
 }
 
-func (s *StompFrameProcessor) Write(data interface{}) {
-	s.log.Debug("stomp Processor Write")
-	s.Writer.Write(data.(*Frame))
+func (p *ProcessorStomp) write(data interface{}) {
+	p.log.Debug("stomp Processor Write")
+	p.Writer.Write(data.(*Frame))
 	return
 }
 
-func (s *StompFrameProcessor) ToByte(data interface{}) []byte {
-	s.log.Debug("stomp To Byte")
+// ToByte converts Frame (for different FrameProcessers different types) type to slices of bytes.
+// Implements ToByte method from transport.FrameProcessor interface.
+func (p *ProcessorStomp) ToByte(data interface{}) []byte {
+	p.log.Debug("ToByte()")
 	/*b, err := json.Marshal(group)
 	if err != nil {
 		fmt.Println("error:", err)
 	}*/
 	f := data.(Frame)
-	s.Writer.Write(&f)
+	p.Writer.Write(&f)
 	return []byte("data.(*Frame)")
 }
 
-func (s *StompFrameProcessor) Read() error {
+func (p *ProcessorStomp) Read() error {
 	for {
-		ff, err := s.Reader.Read()
+		ff, err := p.Reader.Read()
 		if err != nil {
 			if err == io.EOF {
-				s.log.Errorf("connection closed: eof")
+				p.log.Errorf("connection closed: eof")
 			} else {
-				s.log.Errorf("read failed: %s", err.Error())
+				p.log.Errorf("read failed: %s", err.Error())
 			}
 			return err
 		}
 		if ff == nil {
-			s.log.Infof("heartbeat")
+			p.log.Infof("heartbeat")
 			continue
 		}
 		// TODO: change it to a channel
-		s.log.Infof("2 Data: [%s], [%v], [%s]", ff.Command, ff.Header, string(ff.Body))
+		p.log.Infof("Got frame: %s", (ff.Dump()))
 	}
 }
 
@@ -112,6 +111,7 @@ func (f *Frame) String() string {
 	return fmt.Sprintf("%s %s", f.Command, string(f.Body))
 }
 
+// Dump prints all frame content.
 func (f *Frame) Dump() string {
 	var buffer bytes.Buffer
 	for index := 0; index < f.Header.Len(); index++ {

@@ -178,7 +178,6 @@ func (n *Node) MainLoop() {
 
 	for {
 		cmd := <-n.CommandCh
-		log.Debugf("MainLoop: get command %+v", cmd)
 		correctCmd = false
 		for _, processer := range n.cmdProcessors {
 			known, isExiting = processer.ProcessCommand(cmd)

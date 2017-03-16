@@ -23,7 +23,7 @@ type DefaultProcessor struct {
 // ProcessCommand contains a loop where commands handles
 func (d *DefaultProcessor) ProcessCommand(cmd Command) (known bool, isExiting bool) {
 	var id = cmd.GetCommandID()
-	log.Debugf("process command=%+v, cmd_id=%s", cmd, d.CommandToString(cmd.GetCommandID()))
+	log.Debugf("Process command [%s]", d.CommandToString(cmd.GetCommandID()))
 
 	n := d.node
 

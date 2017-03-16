@@ -5,5 +5,5 @@ import (
 )
 
 var (
-	ErrInvalidHeartBeat = errors.New("invalid heart-beat")
+	errInvalidHeartBeat = errors.New("invalid heart-beat")
 )

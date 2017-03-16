@@ -24,7 +24,7 @@ func NewNode() *NodeStomp {
 // SendFrame sends a frame to ActiveLink with certain ID.
 func (n *NodeStomp) SendFrame(activeLinkID string, frame *frame.Frame) {
 
-	log.Warnf("funcSendFrame() for [%s]", activeLinkID)
+	log.WithField("ID=", activeLinkID).Debugf("funcSendFrame() enter")
 
 	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},

@@ -5,7 +5,7 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-var log = slf.WithContext("stomp")
+var log = slf.WithContext("NodeStomp")
 
 // ProcessorStomp inherited from transport.Processor
 type ProcessorStomp struct {
@@ -15,7 +15,7 @@ type ProcessorStomp struct {
 // ProcessCommand process STOMP commands.
 func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isExiting bool) {
 	var id = cmd.GetCommandID()
-	log.Warnf("Command=%+v, cmd=%s", cmd, s.CommandToString(cmd.GetCommandID()))
+	log.Debugf("Process command [%s]", s.CommandToString(cmd.GetCommandID()))
 
 	switch id {
 	case stompSendFrameCommand:
@@ -25,7 +25,7 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 				log.Errorf("Invalid command type %v", cmd)
 				return false, true
 			}
-			log.Debugf("Command=%s[%d]; processing: %+v", s.CommandToString(stompSendFrameCommand), cmdSendFrame)
+			log.Debugf("Command=[%s/%d]; frame: [%s]", s.CommandToString(stompSendFrameCommand), stompSendFrameCommand, cmdSendFrame.frame.Dump())
 
 			lActive, ok := s.node.LinkActives[cmdSendFrame.linkActiveID]
 			if !ok {

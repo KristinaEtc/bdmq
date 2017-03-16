@@ -22,12 +22,12 @@ const (
 	Session       = "session"
 	Server        = "server"
 	Destination   = "destination"
-	Id            = "id"
+	ID            = "id"
 	Ack           = "ack"
 	Transaction   = "transaction"
-	ReceiptId     = "receipt-id"
+	ReceiptID     = "receipt-id"
 	Subscription  = "subscription"
-	MessageId     = "message-id"
+	MessageID     = "message-id"
 	Message       = "message"
 )
 
@@ -113,7 +113,7 @@ func (h *Header) GetAll(key string) []string {
 	return values
 }
 
-// Returns the header name and value at the specified index in
+// GetAt returns the header name and value at the specified index in
 // the collection. The index should be in the range 0 <= index < Len(),
 // a panic will occur if it is outside this range.
 func (h *Header) GetAt(index int) (key, value string) {
