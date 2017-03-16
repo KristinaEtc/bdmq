@@ -5,36 +5,32 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-var log = slf.WithContext("stomp.go")
+var log = slf.WithContext("stomp")
 
-type StompProcesser struct {
-	node *StompNode
+// ProcessorStomp inherited from transport.Processor
+type ProcessorStomp struct {
+	node *NodeStomp
 }
 
-func (sP *StompProcesser) ProcessCommand(cmd transport.Command) (known bool, isExiting bool) {
+// ProcessCommand process STOMP commands.
+func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isExiting bool) {
 	var id = cmd.GetCommandID()
-	log.Warnf("[stomp] process command=%+v, cmd_id=%s", cmd, sP.CommandToString(cmd.GetCommandID()))
+	log.Warnf("Command=%+v, cmd=%s", cmd, s.CommandToString(cmd.GetCommandID()))
 
 	switch id {
 	case stompSendFrameCommand:
 		{
-			cmdSendFrame, ok := cmd.(*StompCommandSendFrame)
+			cmdSendFrame, ok := cmd.(*CommandSendFrameStomp)
 			if !ok {
 				log.Errorf("Invalid command type %v", cmd)
 				return false, true
 			}
-			log.Debugf("CommandToString: [%s]; processing: %v", sP.CommandToString(stompSendFrameCommand), cmdSendFrame)
+			log.Debugf("Command=%s[%d]; processing: %+v", s.CommandToString(stompSendFrameCommand), cmdSendFrame)
 
-			for y, _ := range sP.node.LinkActives {
-				log.Errorf("LinkActives ID=[%s]", y)
-			}
-
-			lActive, ok := sP.node.LinkActives[cmdSendFrame.linkActiveID]
+			lActive, ok := s.node.LinkActives[cmdSendFrame.linkActiveID]
 			if !ok {
-				log.Errorf("Wrong Link Active ID: [%s]; ignored.", cmdSendFrame.linkActiveID)
+				log.Warnf("Wrong Link Active ID: %s; ignored.", cmdSendFrame.linkActiveID)
 				return true, false
-			} else {
-				log.Infof("lActive [%s] is ok", lActive.LinkActiveID)
 			}
 
 			frameInByte := lActive.FrameProcessor.ToByte(cmdSendFrame.frame)
@@ -50,7 +46,9 @@ func (sP *StompProcesser) ProcessCommand(cmd transport.Command) (known bool, isE
 	}
 }
 
-func (sP *StompProcesser) CommandToString(c transport.CommandID) string {
+// CommandToString returns a string representation of command's ID.
+// CommandToString is a methor of transport.CommandProcessor.
+func (s *ProcessorStomp) CommandToString(c transport.CommandID) string {
 	switch c {
 	case 100:
 		return "stompSendFrame"

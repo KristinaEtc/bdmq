@@ -7,6 +7,7 @@ import (
 	"github.com/ventu-io/slf"
 )
 
+// LinkDesc stores all configs of Links for their launching
 type LinkDesc struct {
 	linkID         string
 	address        string
@@ -16,35 +17,42 @@ type LinkDesc struct {
 	frameProcessor string
 }
 
+// Node is the main entity. It is a datacore of a program
 type Node struct {
-	NodeID         string
-	LinkDescs      map[string]*LinkDesc
-	LinkActives    map[string]*LinkActive
-	LinkControls   map[string]*LinkControl
-	CommandCh      chan Command
+	NodeID         string                  // ID of Node
+	LinkDescs      map[string]*LinkDesc    // Map of all LinkDesc by ID
+	LinkActives    map[string]*LinkActive  // Map of all LinkActive by ID
+	LinkControls   map[string]*LinkControl // Map of all LinkControl by ID
+	CommandCh      chan Command            // A channel for commands
 	hasLinks       int
 	hasActiveLinks int
-	cmdProcessers  []CommandProcesser
-	//	Subscribtions  []*chan Message
+	cmdProcessors  []CommandProcessor
+	//	Subscribtions  map[string]*chan Message	Map of all subscriptions by ID
 }
 
+// NewNode creates new instance of Node with DefaultProcesser and CommandProcesser
+// and returns it
 func NewNode() (n *Node) {
 	n = &Node{
 		LinkDescs:     make(map[string]*LinkDesc),
 		LinkControls:  make(map[string]*LinkControl),
 		LinkActives:   make(map[string]*LinkActive),
 		CommandCh:     make(chan Command),
-		cmdProcessers: make([]CommandProcesser, 0),
+		cmdProcessors: make([]CommandProcessor, 0),
 	}
 
-	dProcesser := &DefaultProcesser{node: n}
-	n.cmdProcessers = append(n.cmdProcessers, dProcesser)
+	dProcessor := &DefaultProcessor{node: n}
+	n.cmdProcessors = append(n.cmdProcessors, dProcessor)
 
 	return
 }
 
-func (n *Node) AddCmdProcessor(processer CommandProcesser) {
-	n.cmdProcessers = append(n.cmdProcessers, processer)
+// AddCmdProcessor adds to CommandProcessors a new one.
+// Then, when command comes, Node will try to process this in DefaultProcesser;
+// if this command couldn't process, it will be sended by turns to all other processer,
+// which was added by this command.
+func (n *Node) AddCmdProcessor(processor CommandProcessor) {
+	n.cmdProcessors = append(n.cmdProcessors, processor)
 }
 
 func checkLinkMode(mode string) (int, error) {
@@ -57,6 +65,7 @@ func checkLinkMode(mode string) (int, error) {
 	return 2, fmt.Errorf("Wrong link mode: %s", mode)
 }
 
+// InitLinkDesc creates LinkDesc for every config struct lDescJSON
 func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 
 	for _, l := range lDescJSON {
@@ -74,6 +83,7 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 	return nil
 }
 
+// InitLinkControl initializes LinkControl and sends a command to Node about new one
 func (n *Node) InitLinkControl(lD *LinkDesc) {
 
 	log := slf.WithContext("LinkControl").WithFields(slf.Fields{"ID": lD.linkID})
@@ -106,52 +116,58 @@ func (n *Node) InitLinkControl(lD *LinkDesc) {
 	log.Debugf("func InitLinkControl() %+v closing", lD)
 }
 
+// RegisterLinkControl sends a command no Node to register a new LinkControl entiry lActive
 func (n *Node) RegisterLinkControl(lControl *LinkControl) {
 
-	log.Debugf("func RegisterLinkControl() %s", lControl.getId())
+	log.Debugf("func RegisterLinkControl() %s", lControl.getID())
 	n.CommandCh <- &NodeCommandControlLink{
 		NodeCommand: NodeCommand{Cmd: registerControl},
 		ctrl:        lControl,
 	}
 }
 
+// RegisterLinkActive sends a command no Node to register a new LinkActive entiry lActive
 func (n *Node) RegisterLinkActive(lActive *LinkActive) {
-	log.Debugf("func RegisterLinkActive() %s", lActive.Id())
+	log.Debugf("func RegisterLinkActive() %s", lActive.ID())
 	n.CommandCh <- &NodeCommandActiveLink{
 		NodeCommand: NodeCommand{Cmd: registerActive},
 		active:      lActive,
 	}
 }
 
+// UnregisterLinkControl sends a command no Node to unregister lControl
 func (n *Node) UnregisterLinkControl(lControl *LinkControl) {
 
-	log.Debugf("func UnregisterLinkControl() %s", lControl.getId())
+	log.Debugf("func UnregisterLinkControl() %s", lControl.getID())
 	n.CommandCh <- &NodeCommandControlLink{
 		NodeCommand: NodeCommand{Cmd: unregisterControl},
 		ctrl:        lControl,
 	}
 }
 
+// UnregisterLinkActive sends a command no Node to register a new LinkActive entiry
 func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 
-	log.Debugf("func UnregisterLinkActive() %s", lActive.Id())
+	log.Debugf("func UnregisterLinkActive() %s", lActive.ID())
 	n.CommandCh <- &NodeCommandActiveLink{
 		NodeCommand: NodeCommand{Cmd: unregisterActive},
 		active:      lActive,
 	}
 }
 
-func (n *Node) SendMessage(activeLinkId string, msg string) {
+// SendMessage sends a command no Node to send message msg to ActiveLink with ID activeLinkID
+func (n *Node) SendMessage(activeLinkID string, msg string) {
 	n.CommandCh <- &NodeCommandSendMessage{
 		NodeCommand: NodeCommand{Cmd: sendMessageNode},
 		msg:         msg,
 	}
 }
 
-func closeHelper(closer LinkCloser) {
+func closeHelper(closer linkCloser) {
 	closer.Close()
 }
 
+// MainLoop contain a loop which takes Node commands and sends it to Processors
 func (n *Node) MainLoop() {
 
 	log.Debug("Node.MainLoop() enter")
@@ -164,7 +180,7 @@ func (n *Node) MainLoop() {
 		cmd := <-n.CommandCh
 		log.Debugf("MainLoop: get command %+v", cmd)
 		correctCmd = false
-		for _, processer := range n.cmdProcessers {
+		for _, processer := range n.cmdProcessors {
 			known, isExiting = processer.ProcessCommand(cmd)
 			if known {
 				correctCmd = true
@@ -184,13 +200,14 @@ func (n *Node) MainLoop() {
 	log.Debug("Node.MainLoop() exit")
 }
 
+// Run launches MainLoop() and Initializes Initializes LinkControl in InitLinkControl()
 func (n *Node) Run() error {
 
 	log.Debug("Node.Run() enter")
 
 	if n.LinkDescs == nil && len(n.LinkDescs) == 0 {
-		log.Debug(ErrEmptyLinkRepository.Error())
-		return ErrEmptyLinkRepository
+		log.Debug(errEmptyLinkRepository.Error())
+		return errEmptyLinkRepository
 	}
 
 	go n.MainLoop()
@@ -204,6 +221,7 @@ func (n *Node) Run() error {
 	return nil
 }
 
+// Stop sends stop command for all Links and waites their completion
 func (n *Node) Stop() {
 	log.Debug("Node.Stop()")
 

@@ -1,10 +1,12 @@
 package transport
 
+// Modes of links
 const (
 	ServerMode int = iota
 	ClientMode
 )
 
+//CommandID is a type of commands. Wrappes int.
 type CommandID int
 
 const (
@@ -17,28 +19,32 @@ const (
 	sendMessageByIDNode
 )
 
+// NodeCommand is a command which processes by Node.
 type NodeCommand struct {
 	Cmd CommandID
 }
 
+// GetCommandID returns command's ID
 func (nC *NodeCommand) GetCommandID() CommandID {
 	return nC.Cmd
 }
 
+// NodeCommandControlLink represents a command to Node for act with LinkControl
 type NodeCommandControlLink struct {
 	NodeCommand
 	ctrl *LinkControl
 }
 
+// NodeCommandActiveLink representsa a command to Node for act with LinkActive
 type NodeCommandActiveLink struct {
 	NodeCommand
 	active *LinkActive
 }
 
+// NodeCommandSendMessage represents a command to Node to send a message
 type NodeCommandSendMessage struct {
 	NodeCommand
-	quequeName string
-	msg        string
+	msg string
 }
 
 type cmdActiveLink struct {

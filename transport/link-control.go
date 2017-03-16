@@ -23,11 +23,11 @@ type LinkControl struct {
 }
 
 // Mode returnes a type of LinkControl: server or client.
-func (lc *LinkControl) Mode() int {
-	return lc.mode
+func (lC *LinkControl) Mode() int {
+	return lC.mode
 }
 
-func (lC *LinkControl) getId() string {
+func (lC *LinkControl) getID() string {
 	return lC.linkDesc.linkID
 }
 
@@ -58,6 +58,7 @@ func (lC *LinkControl) sendCommand(cmd cmdContrlLink) {
 
 }
 
+// Close sends command to close ControlLink
 func (lC *LinkControl) Close() {
 	lC.log.Debug("Close()")
 	debug.PrintStack()
@@ -66,6 +67,8 @@ func (lC *LinkControl) Close() {
 	})
 }
 
+// NotifyErrorAccept sends command to notify an error in accept
+// to he handles it by LinkControl
 func (lC *LinkControl) NotifyErrorAccept(err error) {
 	lC.sendCommand(cmdContrlLink{
 		cmd: errorControlLinkAccept,
@@ -73,6 +76,8 @@ func (lC *LinkControl) NotifyErrorAccept(err error) {
 	})
 }
 
+// NotifyErrorRead sends command to notify an error in read
+// to he handles it by LinkControl
 func (lC *LinkControl) NotifyErrorRead(err error) {
 	//WEIRD HACK
 	if lC.getLinkDesc().mode == "server" {
@@ -93,6 +98,8 @@ func (lC *LinkControlClient) NotifyErrorFromActive(err error) {
 }
 */
 
+// Listen runs listen loop and waiting new connections (server) of trying to make a new connection (client)/
+// If new connection was esteblished, executed
 func (lC *LinkControl) Listen() (net.Listener, error) {
 	lC.log.Debug("func Listen()")
 	var err error
@@ -132,7 +139,7 @@ func (lC *LinkControl) Listen() (net.Listener, error) {
 				if command.cmd == quitControlLink {
 					lC.isExiting = true
 					lC.log.Debug("Got quit commant. Closing link")
-					return nil, ErrQuitLinkRequested
+					return nil, errQuitLinkRequested
 				}
 				lC.log.Warnf("Got impermissible command %s. Ignored.", command)
 			}
@@ -140,6 +147,8 @@ func (lC *LinkControl) Listen() (net.Listener, error) {
 	}
 }
 
+// Accept runs an the Accemt method of the net.Listener interface; it waits for the next call and
+// if connection established successfuly, calls initLinkActive to create new LinkActive.
 func (lC *LinkControl) Accept(ln net.Listener) {
 	for {
 		conn, err := ln.Accept()
@@ -154,6 +163,7 @@ func (lC *LinkControl) Accept(ln net.Listener) {
 	}
 }
 
+// Dial is a method which calls net.Conn Dial() in a loop till connection established successfully
 func (lC *LinkControl) Dial() (net.Conn, error) {
 	lC.log.Debug("func Dial()")
 
@@ -203,6 +213,7 @@ func (lC *LinkControl) Dial() (net.Conn, error) {
 	}
 }
 
+// WaitCommandServer processes commands of LinkControl with mode "server"
 func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 	for {
 		select {
@@ -211,7 +222,7 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 				lC.log.Debugf("WaitCommandServer: quit received")
 				lC.isExiting = true
 				conn.Close()
-				lC.WaitExit()
+				lC.waitExit()
 
 				return true
 			}
@@ -228,7 +239,7 @@ func (lC *LinkControl) WaitCommandServer(conn io.Closer) (isExiting bool) {
 	}
 }
 
-func (lC *LinkControl) WaitExit() {
+func (lC *LinkControl) waitExit() {
 	log.Debugf("WaitExit")
 	timeout := time.NewTimer(time.Duration(30) * time.Second)
 	for {
@@ -243,15 +254,16 @@ func (lC *LinkControl) WaitExit() {
 	}
 }
 
+// WaitCommandClient processes commands of LinkControl with mode "client"
 func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 
 	select {
 	case command := <-lC.commandCh:
 		if command.cmd == quitControlLink {
-			lC.log.Debugf("linkControl: quit received %s", lC.getId())
+			lC.log.Debugf("linkControl: quit received %s", lC.getID())
 			lC.isExiting = true
 			conn.Close()
-			lC.WaitExit()
+			lC.waitExit()
 			return true
 		}
 		if command.cmd == errorControlLinkRead {
@@ -267,7 +279,7 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 
 func (lC *LinkControl) initLinkActive(conn net.Conn) {
 
-	id := lC.getId() //+ ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
+	id := lC.getID() //+ ":" + conn.LocalAddr().String() + "-" + conn.RemoteAddr().String()
 	lC.log.Debugf("InitLinkActive: %s", id)
 
 	linkActive := LinkActive{
@@ -284,7 +296,7 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	frameProcessorFactory, ok := frameProcessors[lC.linkDesc.frameProcessor]
 	if !ok {
 		linkActive.log.Warn("initLinkActive: frame processor not found, will be used default")
-		linkActive.FrameProcessor = dFrameProcessorFactory.InitFrameProcessor(linkActive, conn, conn, linkActive.log)
+		linkActive.FrameProcessor = dFrameProcessorFactory.initFrameProcessor(linkActive, conn, conn, linkActive.log)
 	} else {
 		linkActive.FrameProcessor = frameProcessorFactory.InitFrameProcessor(linkActive, conn, conn, linkActive.log)
 	}
@@ -321,6 +333,9 @@ func (lC *LinkControl) InitLinkActive(conn net.Conn) {
 }
 */
 
+// WorkClient runs Dial() to current LinkControl, then, if connection was established, creates new LinkActive
+// and calls WaitCommandServer with loop which process commands for this
+// LinkActive.
 func (lC *LinkControl) WorkClient() {
 
 	for {
@@ -343,6 +358,9 @@ func (lC *LinkControl) WorkClient() {
 	lC.log.Debug("WorkClient exit")
 }
 
+// WorkServer runs Listen() to current LinkControl, then, if connection was established, Accept(),
+// where a new LinkActive will be created. Then runs WaitCommandServer with loop which process commands for this
+// LinkActive.
 func (lC *LinkControl) WorkServer() {
 
 	for {

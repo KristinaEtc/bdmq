@@ -5,37 +5,44 @@ import (
 	"github.com/KristinaEtc/bdmq/transport"
 )
 
-type StompNode struct {
+// NodeStomp is a class with methods for STOMP comands.
+// It inherits from transport.Node.
+type NodeStomp struct {
 	*transport.Node
 }
 
-func NewNode() *StompNode {
-	n := &StompNode{transport.NewNode()}
+// NewNode creates a new NodeStomp object and returns it.
+func NewNode() *NodeStomp {
+	n := &NodeStomp{transport.NewNode()}
 
-	StompProcesser := &StompProcesser{node: n}
-	n.AddCmdProcessor(StompProcesser)
+	stompProcessor := &ProcessorStomp{node: n}
+	n.AddCmdProcessor(stompProcessor)
 
 	return n
 }
 
-func (n *StompNode) SendFrame(activeLinkID string, frame *frame.Frame) {
+// SendFrame sends a frame to ActiveLink with certain ID.
+func (n *NodeStomp) SendFrame(activeLinkID string, frame *frame.Frame) {
 
 	log.Warnf("funcSendFrame() for [%s]", activeLinkID)
 
-	n.CommandCh <- &StompCommandSendFrame{
+	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},
 		*frame,
 		activeLinkID,
 	}
 }
 
-func (n *StompNode) RecieveFrame(activeLinkID string, frame *frame.Frame) {
+/*
+// RecieveFrame
+func (n *NodeStomp) RecieveFrame(activeLinkID string, frame *frame.Frame) {
 
 	log.Debugf("funcSendFrame() for [%s]", activeLinkID)
 
-	n.CommandCh <- &StompCommandSendFrame{
+	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},
 		*frame,
 		activeLinkID,
 	}
 }
+*/

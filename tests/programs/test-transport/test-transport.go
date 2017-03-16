@@ -14,10 +14,9 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-// do not move
-
 var log = slf.WithContext("main.go")
 
+// Global is a struct with all configs; used with github.com/KristinaEtc/config package.
 type Global struct {
 	MachineID string
 	Links     []transport.LinkDescFromJSON

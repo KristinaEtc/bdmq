@@ -20,14 +20,17 @@ type LinkActive struct {
 	FrameProcessor FrameProcessor
 }
 
-func (lA *LinkActive) Id() string {
+// ID returns LinkActive ID
+func (lA *LinkActive) ID() string {
 	return lA.LinkActiveID
 }
 
+// Conn returns net.Conn of LinkActive
 func (lA *LinkActive) Conn() net.Conn {
 	return lA.conn
 }
 
+// Mode returns mode of LinkActive (server or client)
 func (lA *LinkActive) Mode() int {
 	return lA.linkControl.Mode()
 }
@@ -36,6 +39,7 @@ func (lA *LinkActive) getHandler() Handler {
 	return lA.handler
 }
 
+// Close sends close command to AcliveLink
 func (lA *LinkActive) Close() {
 	lA.log.Info("Close()")
 	lA.commandCh <- cmdActiveLink{
@@ -43,6 +47,7 @@ func (lA *LinkActive) Close() {
 	}
 }
 
+// SendMessageActive sends command to AcliveLink to send message msg
 func (lA *LinkActive) SendMessageActive(msg []byte) {
 	lA.commandCh <- cmdActiveLink{
 		cmd: sendMessageActive,
@@ -50,6 +55,7 @@ func (lA *LinkActive) SendMessageActive(msg []byte) {
 	}
 }
 
+// WaitCommand is a loop for LinkActive command processing
 func (lA *LinkActive) WaitCommand(conn net.Conn) {
 	for {
 		select {
@@ -73,6 +79,8 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 	}
 }
 
+// Write gets msg and writes it to connection. It is an implementation of
+// of method of interface LinkWriter.
 func (lA *LinkActive) Write(msg []byte) error {
 
 	lA.log.Warn("dProcessor Write")
@@ -80,7 +88,8 @@ func (lA *LinkActive) Write(msg []byte) error {
 	return nil
 }
 
-//func (lA *LinkActive) Read(b []byte) error {
+// Read calls method Read() from frameProcess interface.
+// It is an implementation of method of interface LinkWriter.
 func (lA *LinkActive) Read() {
 	lA.log.Debug("Read")
 

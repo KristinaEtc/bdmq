@@ -1,24 +1,31 @@
 package transport
 
+// Command is an interface of all commands of Nodes
+// (for example defaultCommandNode, stompCommands from package stomp)
 type Command interface {
 	GetCommandID() CommandID
 }
 
-type CommandProcesser interface {
+// CommandProcessor is an interface which was created for method ProcessCommand.
+//
+// Processcommand rocesses all Nodes' commands.
+type CommandProcessor interface {
 	ProcessCommand(Command) (bool, bool)
 	CommandToString(CommandID) string
 }
 
-type DefaultProcesser struct {
+// DefaultProcessor is used by Node by default; contains basic commands.
+type DefaultProcessor struct {
 	node    *Node
 	handler Handler
 }
 
-func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting bool) {
+// ProcessCommand contains a loop where commands handles
+func (d *DefaultProcessor) ProcessCommand(cmd Command) (known bool, isExiting bool) {
 	var id = cmd.GetCommandID()
-	log.Debugf("process command=%+v, cmd_id=%s", cmd, dP.CommandToString(cmd.GetCommandID()))
+	log.Debugf("process command=%+v, cmd_id=%s", cmd, d.CommandToString(cmd.GetCommandID()))
 
-	n := dP.node
+	n := d.node
 
 	switch id {
 	case registerActive:
@@ -29,7 +36,7 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 				return false, true
 			}
 
-			n.LinkActives[cmdActive.active.Id()] = cmdActive.active
+			n.LinkActives[cmdActive.active.ID()] = cmdActive.active
 			n.hasActiveLinks++
 			log.Debugf("[registerActive] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
 			return true, false
@@ -44,14 +51,14 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 
 			if len(n.LinkActives) > 0 {
 				for _, lA := range n.LinkActives {
-					log.Debugf("%s", lA.Id())
+					log.Debugf("%s", lA.ID())
 					//return false
 				}
 			} else {
 				log.Debug("NIL")
 			}
 
-			delete(n.LinkActives, cmdActive.active.Id())
+			delete(n.LinkActives, cmdActive.active.ID())
 			if n.hasActiveLinks != 0 {
 				n.hasActiveLinks--
 			} else {
@@ -73,7 +80,7 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 				return false, true
 			}
 
-			n.LinkControls[cmdControl.ctrl.getId()] = cmdControl.ctrl
+			n.LinkControls[cmdControl.ctrl.getID()] = cmdControl.ctrl
 			//n.hasLinks = len(n.LinkControls) > 0
 			n.hasLinks++
 			log.Debugf("[registerControl] linkA=%d, links=%d", n.hasActiveLinks, n.hasLinks)
@@ -87,7 +94,7 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 				return false, true
 			}
 
-			delete(n.LinkControls, cmdControl.ctrl.getId())
+			delete(n.LinkControls, cmdControl.ctrl.getID())
 			//	n.hasLinks = len(n.LinkControls) > 0
 			//	return !(n.hasLinks || n.hasActiveLinks)
 			if n.hasLinks != 0 {
@@ -104,13 +111,13 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 			log.Infof("Stop received")
 			if len(n.LinkActives) > 0 {
 				for linkID, lA := range n.LinkActives {
-					log.Debugf("Send close to active link %s %s", linkID, lA.Id())
+					log.Debugf("Send close to active link %s %s", linkID, lA.ID())
 					go closeHelper(lA)
 				}
 			}
 			if len(n.LinkControls) > 0 {
 				for linkID, lC := range n.LinkControls {
-					log.Debugf("Send close to link control %s %s", linkID, lC.getId())
+					log.Debugf("Send close to link control %s %s", linkID, lC.getID())
 					go closeHelper(lC)
 				}
 			}
@@ -141,7 +148,8 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 	}
 }
 
-func (dP *DefaultProcesser) CommandToString(c CommandID) string {
+// CommandToString returns string representation from commandID c
+func (d *DefaultProcessor) CommandToString(c CommandID) string {
 	switch c {
 	case 0:
 		return "registerControl"

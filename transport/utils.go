@@ -1,5 +1,8 @@
 package transport
 
+// LinkDescFromJSON contains config data of Links.
+// The main purpose to not use LincDesc directly is global varuables, which need to
+// parse from json.
 type LinkDescFromJSON struct {
 	LinkID         string
 	Address        string

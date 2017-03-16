@@ -6,9 +6,12 @@ import (
 	"github.com/KristinaEtc/bdmq/transport"
 )
 
+// HandlerTestFactory is a factory of Ha
 type HandlerTestFactory struct {
 }
 
+// InitHandler creates a new HandlerTest and returns it.
+// InitHandler is a function of transport.HandlerFactory.
 func (h HandlerTestFactory) InitHandler(l transport.LinkWriter, n *transport.Node) transport.Handler {
 
 	log.Debugf("InitHandler")
@@ -29,28 +32,27 @@ type HandlerTest struct {
 func (h *HandlerTest) OnRead(msg []byte) {
 
 	msgStr := strings.TrimSpace(string(msg))
-	log.Debugf("OnRead msg=%s", msgStr)
-	/*
-		if msg==commandQuit{
-			log.Debug("got command quit for ActiveLink with ID=%s ; exiting")
-		}
-	*/
-
+	log.WithField("ID=", h.link.ID()).Debugf("OnRead msg=%s", msgStr)
 }
 
-// OnConnect implements OnConnect method from Heandler interface
+// OnConnect implements OnConnect method from transport.Handler interface
 func (h *HandlerTest) OnConnect() error {
-	log.Debugf("OnConnect")
+	log.WithField("ID=", h.link.ID()).Debugf("OnConnect")
 	return nil
 }
 
-// OnWrite implements OnWrote method from Heandler interface
+// OnWrite implements OnWrote method from Handler interface
 func (h *HandlerTest) OnWrite(msg []byte) {
 
-	log.WithField("ID=", h.link.Id()).Debugf("OnWrite")
+	log.WithField("ID=", h.link.ID()).Debugf("OnWrite")
 
 	err := h.link.Write(msg)
 	if err != nil {
-		log.WithField("ID=", h.link.Id()).Errorf("Error read: %s", err.Error())
+		log.WithField("ID=", h.link.ID()).Errorf("Error read: %s", err.Error())
 	}
+}
+
+// OnDisconnect implements OnDisconnect method from Handler interface
+func (h *HandlerTest) OnDisconnect() {
+	log.WithField("ID=", h.link.ID()).Debugf("OnConnect")
 }

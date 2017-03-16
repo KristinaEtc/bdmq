@@ -5,7 +5,8 @@ import (
 	"github.com/KristinaEtc/bdmq/transport"
 )
 
-type StompCommandSendFrame struct {
+// CommandSendFrameStomp is a struct with will send to StompNode proseccor
+type CommandSendFrameStomp struct {
 	transport.NodeCommand
 	frame        frame.Frame
 	linkActiveID string
