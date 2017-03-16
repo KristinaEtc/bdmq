@@ -1,21 +1,12 @@
 package transport
 
 type LinkDescFromJSON struct {
-<<<<<<< Updated upstream
 	LinkID         string
 	Address        string
 	Mode           string
 	Handler        string
 	BufSize        int
 	FrameProcessor string
-=======
-	LinkID     string
-	Address    string
-	Mode       string
-	Handler    string
-	BufSize    int
-	QuequeName string
->>>>>>> Stashed changes
 }
 
 /*

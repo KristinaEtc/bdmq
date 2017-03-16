@@ -1,6 +1,6 @@
-test-programs/*/logs/
-test-programs/*/*.config
+tests/programs/*/logs/
+tests/programs/*/*.config
 
-test-programs/test-transport/test-transport
-test-programs/test-stomp/test-stomp
+tests/programs/test-transport/test-transport
+tests/programs/test-stomp/test-stomp
 

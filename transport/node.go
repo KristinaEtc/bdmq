@@ -8,21 +8,12 @@ import (
 )
 
 type LinkDesc struct {
-<<<<<<< Updated upstream
 	linkID         string
 	address        string
 	mode           string
 	handler        string
 	bufSize        int
 	frameProcessor string
-=======
-	linkID     string
-	address    string
-	mode       string
-	handler    string
-	bufSize    int
-	quequeName string
->>>>>>> Stashed changes
 }
 
 type Node struct {
@@ -71,19 +62,11 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 	for _, l := range lDescJSON {
 
 		lDesc := &LinkDesc{
-<<<<<<< Updated upstream
-			address: l.Address,
-			linkID:  l.LinkID,
-			mode:    l.Mode,
-			handler: l.Handler,
+			address:        l.Address,
+			linkID:         l.LinkID,
+			mode:           l.Mode,
+			handler:        l.Handler,
 			frameProcessor: l.FrameProcessor,
-=======
-			address:    l.Address,
-			linkID:     l.LinkID,
-			mode:       l.Mode,
-			handler:    l.Handler,
-			quequeName: l.QuequeName,
->>>>>>> Stashed changes
 		}
 		n.LinkDescs[l.LinkID] = lDesc
 	}
@@ -158,18 +141,10 @@ func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 	}
 }
 
-<<<<<<< Updated upstream
 func (n *Node) SendMessage(activeLinkId string, msg string) {
 	n.CommandCh <- &NodeCommandSendMessage{
 		NodeCommand: NodeCommand{Cmd: sendMessageNode},
 		msg:         msg,
-=======
-func (n *Node) SendMessage(quequeName string, message string) {
-	n.commandCh <- &NodeCommandSendMessage{
-		NodeCommand: NodeCommand{cmd: sendMessageNode},
-		quequeName:  quequeName,
-		msg:         message,
->>>>>>> Stashed changes
 	}
 }
 

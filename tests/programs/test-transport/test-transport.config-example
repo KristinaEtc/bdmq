@@ -1,0 +1,40 @@
+{
+  "MachineID": "kristina-note-test",
+  "Links": [
+   {
+        "LinkID": "ID2",
+        "Address": "127.0.0.1:7777",
+        "Mode": "client",
+        "Handler": "testHandler",
+        "BufSize": 1024
+    },
+    {
+        "LinkID": "ID1",
+        "Address": "localhost:7777",
+        "Mode": "server",
+        "Handler": "echoHandler",
+        "BufSize": 1024
+      }
+  ],
+  "Logs": {
+    "Handlers": [
+      {"Type": "stderr",
+       "Level": "DEBUG"
+      },
+      {"Type": "file",
+       "Level": "INFO",
+       "Filename": "info.log"
+      },
+      {"Type": "file",
+       "Level": "ERROR",
+       "Filename": "error.log"
+      },
+      {"Type": "file",
+       "Level": "DEBUG",
+       "Filename": "debug.log"
+      }
+    ],
+    "CallerInfo": true,
+    "Logpath": "logs"
+  }
+}

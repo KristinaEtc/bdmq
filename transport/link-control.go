@@ -10,6 +10,8 @@ import (
 	"github.com/ventu-io/slf"
 )
 
+// LinkControl is a entity which represent configuration for new connections.
+// One LinkControl can cause several LinkActives, which actually represent active connection.
 type LinkControl struct {
 	linkDesc  *LinkDesc
 	node      *Node
@@ -20,6 +22,7 @@ type LinkControl struct {
 	//conn      net.Conn
 }
 
+// Mode returnes a type of LinkControl: server or client.
 func (lc *LinkControl) Mode() int {
 	return lc.mode
 }
@@ -274,7 +277,6 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 		commandCh:    make(chan cmdActiveLink),
 		linkControl:  lC,
 		log:          slf.WithContext("LinkActive").WithFields(slf.Fields{"ID": id}),
-		quequeName:   lC.linkDesc.quequeName,
 	}
 
 	linkActive.log.Debugf("frame processer: %s", lC.getLinkDesc().frameProcessor)
@@ -305,7 +307,6 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	node.RegisterLinkActive(&linkActive)
 
 	go linkActive.WaitCommand(conn)
-	linkActive.handler.OnConnect(linkActive.quequeName)
 	linkActive.Read()
 	//linkActive.handler.OnDisconnect()
 

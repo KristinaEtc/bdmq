@@ -14,17 +14,10 @@ type LinkActive struct {
 	LinkActiveID string
 	handler      Handler
 	//parser       *parser.Parser
-<<<<<<< Updated upstream
 	commandCh      chan cmdActiveLink
 	linkControl    *LinkControl
 	log            slf.Logger
 	FrameProcessor FrameProcessor
-=======
-	commandCh   chan cmdActiveLink
-	linkControl *LinkControl
-	log         slf.Logger
-	quequeName  string
->>>>>>> Stashed changes
 }
 
 func (lA *LinkActive) Id() string {

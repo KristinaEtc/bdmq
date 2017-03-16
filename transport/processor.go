@@ -116,30 +116,6 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 			}
 			return true, false
 		}
-	case sendMessageByIDNode:
-		{
-			cmdMessage, ok := cmd.(*NodeCommandSendMessage)
-			if !ok {
-				log.Errorf("Invalid command type %v", cmd)
-				return false, true
-			}
-
-			var quequeExist bool
-
-			if len(n.LinkActives) > 0 {
-				for _, lA := range n.LinkActives {
-					if lA.quequeName == cmdMessage.quequeName {
-						log.Debugf("Sending to queque %s", lA.quequeName)
-						lA.SendMessage(cmdMessage.msg)
-						quequeExist = true
-					}
-				}
-			}
-			if !quequeExist {
-				log.Debug("SendMessage: no active links")
-			}
-			return true, false
-		}
 	case sendMessageNode:
 		{
 			cmdMessage, ok := cmd.(*NodeCommandSendMessage)
@@ -148,25 +124,12 @@ func (dP *DefaultProcesser) ProcessCommand(cmd Command) (known bool, isExiting b
 				return false, true
 			}
 
-			var quequeExist bool
-
 			if len(n.LinkActives) > 0 {
 				for _, lA := range n.LinkActives {
-<<<<<<< Updated upstream
 					log.Debug("for testing i'm choosing all active links")
 					lA.SendMessageActive([]byte(cmdMessage.msg))
 					//return false
-=======
-					if lA.quequeName == cmdMessage.quequeName {
-						log.Debugf("Sending to queque %s", lA.quequeName)
-						lA.SendMessage(cmdMessage.msg)
-						quequeExist = true
-					}
->>>>>>> Stashed changes
 				}
-			}
-			if !quequeExist {
-				log.Debug("SendMessage: no active links")
 			}
 			return true, false
 		}
