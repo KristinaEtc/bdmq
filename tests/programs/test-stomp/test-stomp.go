@@ -1,10 +1,12 @@
 package main
 
 import _ "github.com/KristinaEtc/slflog"
+
 import (
 	"bufio"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
@@ -36,15 +38,16 @@ var globalOpt = Global{
 	},
 }
 
-func read(n *stomp.NodeStomp) {
+func read(done chan bool, n *stomp.NodeStomp) {
+	defer func() {
+		done <- true
+	}()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		if strings.ToLower(scanner.Text()) == "q" {
 			n.Stop()
-			//time.Sleep(time.Second * 5)
 			break
-			//os.Exit(0)
 		} else {
 			message := "message:" + scanner.Text()
 			frame := frame.New(
@@ -57,10 +60,23 @@ func read(n *stomp.NodeStomp) {
 	}
 }
 
-func listen(done chan bool, ch chan []byte) {
+func listen(done chan bool, n *stomp.NodeStomp) {
 	defer func() {
 		done <- true
 	}()
+
+	var ch chan []byte
+	var err error
+	for {
+		ch, err = n.GetChannel("ID2")
+		if err != nil {
+			log.Errorf("Could not get link channel: %s", err.Error())
+			time.Sleep(time.Second * 1)
+			continue
+		}
+		log.Info("Got channel")
+		break
+	}
 
 	select {
 	case msgByte := <-ch:
@@ -88,14 +104,9 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	ch, err := n.GetChannel("ID2")
-	if err != nil {
-		log.Errorf("Could not get link channel: %s", err.Error())
-	}
-
 	done := make(chan bool)
-	go listen(done, ch)
-	go read(n)
+	go listen(done, n)
+	go read(done, n)
 
 	<-done
 }
