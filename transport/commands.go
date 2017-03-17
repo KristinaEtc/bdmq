@@ -16,7 +16,8 @@ const (
 	unregisterActive
 	stopNode
 	sendMessageNode
-	sendMessageByIDNode
+	registerTopic
+	unregisterTopic
 )
 
 // NodeCommand is a command which processes by Node.
@@ -33,6 +34,13 @@ func (nC *NodeCommand) GetCommandID() CommandID {
 type NodeCommandControlLink struct {
 	NodeCommand
 	ctrl *LinkControl
+}
+
+// NodeCommandTopic represents a command to Node for act with topics
+type NodeCommandTopic struct {
+	NodeCommand
+	active    *LinkActive
+	topicName string
 }
 
 // NodeCommandActiveLink representsa a command to Node for act with LinkActive

@@ -10,6 +10,7 @@ type LinkDescFromJSON struct {
 	Handler        string
 	BufSize        int
 	FrameProcessor string
+	Topic          string
 }
 
 /*

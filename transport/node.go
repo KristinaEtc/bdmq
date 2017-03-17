@@ -15,6 +15,7 @@ type LinkDesc struct {
 	handler        string
 	bufSize        int
 	frameProcessor string
+	topic          string
 }
 
 // Node is the main entity. It is a datacore of a program
@@ -27,6 +28,7 @@ type Node struct {
 	hasLinks       int
 	hasActiveLinks int
 	cmdProcessors  []CommandProcessor
+	Topics         map[string]map[string]*LinkActive
 	//	Subscribtions  map[string]*chan Message	Map of all subscriptions by ID
 }
 
@@ -39,6 +41,7 @@ func NewNode() (n *Node) {
 		LinkActives:   make(map[string]*LinkActive),
 		CommandCh:     make(chan Command),
 		cmdProcessors: make([]CommandProcessor, 0),
+		Topics:        make(map[string](map[string]*LinkActive)),
 	}
 
 	dProcessor := &DefaultProcessor{node: n}
@@ -76,6 +79,7 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 			mode:           l.Mode,
 			handler:        l.Handler,
 			frameProcessor: l.FrameProcessor,
+			topic:          l.Topic,
 		}
 		n.LinkDescs[l.LinkID] = lDesc
 	}
@@ -152,6 +156,28 @@ func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 	n.CommandCh <- &NodeCommandActiveLink{
 		NodeCommand: NodeCommand{Cmd: unregisterActive},
 		active:      lActive,
+	}
+}
+
+// RegisterTopic sends a command no Node to register a topic for subscription
+func (n *Node) RegisterTopic(topic string, lA *LinkActive) {
+
+	log.Debugf("func  RegisterTopic() %s", topic)
+	n.CommandCh <- &NodeCommandTopic{
+		NodeCommand: NodeCommand{Cmd: registerTopic},
+		topicName:   topic,
+		active:      lA,
+	}
+}
+
+// UnregisterTopic sends a command no Node to unregister a topic for subscription
+func (n *Node) UnregisterTopic(topic string, lA *LinkActive) {
+
+	log.Debugf("func  UnregisterTopic() %s", topic)
+	n.CommandCh <- &NodeCommandTopic{
+		NodeCommand: NodeCommand{Cmd: unregisterTopic},
+		topicName:   topic,
+		active:      lA,
 	}
 }
 

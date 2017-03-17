@@ -27,14 +27,16 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 			}
 			log.Debugf("Command=[%s/%d]; frame: [%s]", s.CommandToString(stompSendFrameCommand), stompSendFrameCommand, cmdSendFrame.frame.Dump())
 
-			lActive, ok := s.node.LinkActives[cmdSendFrame.linkActiveID]
+			lActives, ok := s.node.Topics[cmdSendFrame.topic]
 			if !ok {
-				log.Warnf("Wrong Link Active ID: %s; ignored.", cmdSendFrame.linkActiveID)
+				log.Warnf("Wrong topic name: %s; ignored.", cmdSendFrame.topic)
 				return true, false
 			}
 
-			frameInByte := lActive.FrameProcessor.ToByte(cmdSendFrame.frame)
-			lActive.SendMessageActive(frameInByte)
+			for _, lA := range lActives {
+				frameInByte := lA.FrameProcessor.ToByte(cmdSendFrame.frame)
+				lA.SendMessageActive(frameInByte)
+			}
 
 			return true, false
 		}

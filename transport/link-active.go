@@ -17,6 +17,7 @@ type LinkActive struct {
 	linkControl    *LinkControl
 	log            slf.Logger
 	FrameProcessor FrameProcessor
+	topicCh        chan []byte
 }
 
 // ID returns LinkActive ID

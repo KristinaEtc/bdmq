@@ -289,6 +289,11 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 		commandCh:    make(chan cmdActiveLink),
 		linkControl:  lC,
 		log:          slf.WithContext("LinkActive").WithFields(slf.Fields{"ID": id}),
+		topicCh:      make(chan []byte),
+	}
+
+	if lC.getLinkDesc().topic != "" {
+		lC.node.RegisterTopic(lC.getLinkDesc().topic, &linkActive)
 	}
 
 	frameProcessorFactory, ok := frameProcessors[lC.linkDesc.frameProcessor]

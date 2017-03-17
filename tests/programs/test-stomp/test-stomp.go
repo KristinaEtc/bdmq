@@ -71,7 +71,7 @@ func main() {
 				"test:tttt", "test2:2", "test1:1", message,
 			)
 
-			n.SendFrame("ID2", frame)
+			n.SendFrame("topic-test", frame)
 			time.Sleep(time.Second * 3)
 			break
 			//	n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")

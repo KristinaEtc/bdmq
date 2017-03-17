@@ -8,8 +8,8 @@ import (
 // CommandSendFrameStomp is a struct with will send to StompNode proseccor
 type CommandSendFrameStomp struct {
 	transport.NodeCommand
-	frame        frame.Frame
-	linkActiveID string
+	frame frame.Frame
+	topic string
 }
 
 const (
