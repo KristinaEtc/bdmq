@@ -25,6 +25,11 @@ func (lA *LinkActive) ID() string {
 	return lA.LinkActiveID
 }
 
+// GetTopicCh returns LinkActive topicCh
+func (lA *LinkActive) GetTopicCh() chan []byte {
+	return lA.topicCh
+}
+
 // Conn returns net.Conn of LinkActive
 func (lA *LinkActive) Conn() net.Conn {
 	return lA.conn
@@ -63,6 +68,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 			{
 				lA.log.Debugf("Command=[%s/%v]", command.cmd.String(), command.cmd)
 				if command.cmd == quitLinkActive {
+					log.Warn("quitLinkActive")
 					conn.Close()
 					return
 				}
@@ -83,7 +89,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 // of method of interface LinkWriter.
 func (lA *LinkActive) Write(msg []byte) error {
 
-	lA.log.Debug("dProcessor Write() enter")
+	lA.log.Debug("LinkActive Write() enter")
 	lA.conn.Write(msg)
 	return nil
 }

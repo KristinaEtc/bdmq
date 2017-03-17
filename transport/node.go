@@ -1,7 +1,9 @@
 package transport
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ventu-io/slf"
@@ -66,6 +68,18 @@ func checkLinkMode(mode string) (int, error) {
 		return 1, nil
 	}
 	return 2, fmt.Errorf("Wrong link mode: %s", mode)
+}
+
+// GetChannel returns the 1st channel of ActiveLink with such ID
+func (n *Node) GetChannel(ActiveLinkID string) (chan []byte, error) {
+	for _, v := range n.Topics {
+		for id, lA := range v {
+			if strings.Compare(id, ActiveLinkID) == 0 {
+				return lA.GetTopicCh(), nil
+			}
+		}
+	}
+	return nil, errors.New("No links with such id")
 }
 
 // InitLinkDesc creates LinkDesc for every config struct lDescJSON

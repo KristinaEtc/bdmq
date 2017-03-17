@@ -19,6 +19,7 @@ type ProcessorStomp struct {
 	Reader     *Reader
 	Writer     *Writer
 	log        slf.Logger
+	topicCh    chan []byte
 }
 
 // InitFrameProcessor creates a new entity of ProcessorStomp and adds it to Node process slice
@@ -29,6 +30,7 @@ func (f FactoryStomp) InitFrameProcessor(lActive transport.LinkActive, rd io.Rea
 		Reader:     NewReader(rd),
 		log:        slf.WithContext("FrameProcessor").WithFields(slf.Fields{"ID": lActive.ID()}),
 		linkActive: lActive,
+		topicCh:    lActive.GetTopicCh(),
 	}
 
 	return sFrameProcessor
@@ -68,7 +70,8 @@ func (p *ProcessorStomp) Read() error {
 			p.log.Infof("heartbeat")
 			continue
 		}
-		// TODO: change it to a channel
+
+		p.topicCh <- []byte(ff.Dump())
 		p.log.Infof("Got frame: %s", (ff.Dump()))
 	}
 }

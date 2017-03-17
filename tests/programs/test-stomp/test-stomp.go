@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
@@ -37,6 +36,38 @@ var globalOpt = Global{
 	},
 }
 
+func read(n *stomp.NodeStomp) {
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		if strings.ToLower(scanner.Text()) == "q" {
+			n.Stop()
+			//time.Sleep(time.Second * 5)
+			break
+			//os.Exit(0)
+		} else {
+			message := "message:" + scanner.Text()
+			frame := frame.New(
+				"COMMIT",
+				"test:tttt", "test2:2", "test1:1", message,
+			)
+
+			n.SendFrame("topic-test", frame)
+		}
+	}
+}
+
+func listen(done chan bool, ch chan []byte) {
+	defer func() {
+		done <- true
+	}()
+
+	select {
+	case msgByte := <-ch:
+		log.Infof("Got frame: %s", string(msgByte))
+	}
+}
+
 func main() {
 
 	config.ReadGlobalConfig(&globalOpt, "stomp.go")
@@ -57,28 +88,14 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		if strings.ToLower(scanner.Text()) == "q" {
-			n.Stop()
-			//time.Sleep(time.Second * 5)
-			break
-			//os.Exit(0)
-		} else {
-			message := "message:" + "yi"
-			frame := frame.New(
-				"COMMIT",
-				"test:tttt", "test2:2", "test1:1", message,
-			)
-
-			n.SendFrame("topic-test", frame)
-			time.Sleep(time.Second * 3)
-			break
-			//	n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
-		}
+	ch, err := n.GetChannel("ID2")
+	if err != nil {
+		log.Errorf("Could not get link channel: %s", err.Error())
 	}
 
-	for scanner.Scan() {
-		scanner.Text()
-	}
+	done := make(chan bool)
+	go listen(done, ch)
+	go read(n)
+
+	<-done
 }
