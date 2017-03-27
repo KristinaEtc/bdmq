@@ -1,16 +1,17 @@
 package main
 
+import _ "github.com/KristinaEtc/slflog"
+
 import (
 	"bufio"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/KristinaEtc/bdmq/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
-	_ "github.com/KristinaEtc/slflog"
-	"github.com/go-stomp/stomp/frame"
+
+	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/ventu-io/slf"
 )
 
@@ -37,28 +38,20 @@ var globalOpt = Global{
 	},
 }
 
-/*
-func read(done chan bool, n *stomp.NodeStomp) {
-	defer func() {
-		done <- true
-	}()
-
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		if strings.ToLower(scanner.Text()) == "q" {
-			n.Stop()
-			break
-		} else {
-			message := "message:" + scanner.Text()
-			frame := frame.New(
-				"COMMIT",
-				"topic:topic-test", "test2:2", "test1:1", message,
-			)
-
-			n.SendFrame("topic-test", frame)
+//func read(done chan bool, n *stomp.NodeStomp) {
+func read(ch chan frame.Frame) {
+	//defer func() {
+	//	done <- true
+	//}()
+	for {
+		select {
+		case fr := <-ch:
+			log.Infof("Got frame: %s", fr.Dump())
 		}
 	}
 }
+
+/*
 
 func listen(done chan bool, n *stomp.NodeStomp) {
 	defer func() {
@@ -109,8 +102,8 @@ func main() {
 	log.Debugf("config=%+v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("stomp", stomp.HandlerStompFactory{})
-	n := stomp.NewNode()
 
+	n := stomp.NewNode()
 	n.AddCmdProcessor(&stomp.ProcessorStomp{Node: n})
 
 	err := n.InitLinkDesc(globalOpt.Links)
@@ -124,30 +117,30 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
+	ch, err := n.Subscribe("test-topic")
+	if err != nil {
+		log.Errorf("Could not subscribe: %s", err.Error())
+		return
+	}
+
+	go read(ch)
+
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		if strings.ToLower(scanner.Text()) == "q" {
 			n.Stop()
-			//time.Sleep(time.Second * 5)
 			break
-			//os.Exit(0)
 		} else {
 
-			message := "message:" + "yi"
+			message := scanner.Text() + "yi"
 			frame := frame.New(
 				"COMMIT",
 				"from:ID-2", "topic:test-topic", "test1:1", message,
 			)
 
-			n.Subscribe("test-topic")
-			n.SendFrame("ID-2", frame)
-			time.Sleep(time.Second * 3)
-			break
+			n.SendFrame("test-topic", *frame)
+
 			//	n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
 		}
-	}
-
-	for scanner.Scan() {
-		scanner.Text()
 	}
 }

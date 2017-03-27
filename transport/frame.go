@@ -1,10 +1,12 @@
 package transport
 
+/*
 // Frame is an interface for different types of frames
 type Frame interface {
 	Dump() string
 	F()
 }
+*/
 
 /*
 type frameProcessorFactories map[string]FrameProcessorFactory

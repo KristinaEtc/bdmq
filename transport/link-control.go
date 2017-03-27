@@ -307,6 +307,7 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	node.RegisterLinkActive(&linkActive)
 
 	go linkActive.WaitCommand(conn)
+	h.OnConnect()
 	linkActive.Read()
 	//linkActive.handler.OnDisconnect()
 

@@ -1,71 +1,84 @@
 package stomp
 
 import (
-	"errors"
-
+	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
 )
 
+// Nodes for using them in handlers!
+var nodes = make(map[string]*NodeStomp)
+
 type subscripted struct {
-	ok  bool
-	err error
+	ok bool
+}
+
+// Subscription is a struct with parametrs for sending by topics
+type Subscription struct {
+	//	linkActiveID string
+	ch chan frame.Frame
 }
 
 // NodeStomp is a class with methods for STOMP comands.
 // It inherits from transport.Node.
 type NodeStomp struct {
 	*transport.Node
-	subscriptions map[string]map[string]*chan transport.Frame // groupped by topic, then by LinkActiveID
+	subscriptions map[string]Subscription // groupped by topic
 }
 
 // NewNode creates a new NodeStomp object and returns it.
 func NewNode() *NodeStomp {
 
 	n := &NodeStomp{transport.NewNode(),
-		make(map[string]map[string]*chan transport.Frame)}
+		make(map[string]Subscription)}
+
+	// TODO; make it ok; now works with one node only
+	n.NodeID = "NodeStomp-ID"
+
+	nodes[n.NodeID] = n
 
 	return n
 }
 
 // SendFrame sends a frame to ActiveLink with certain ID.
-func (n *NodeStomp) SendFrame(linkActiveID string, frame *transport.Frame) {
+func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 
-	log.WithField("linkActiveID=", linkActiveID).Debugf("funcSendFrame() enter")
+	log.WithField("topic", topic).Debugf("funcSendFrame()")
 
 	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},
-		*frame,
+		frame,
+		topic,
+	}
+}
+
+// ReceiveFrame used in handlers for recieving a frame.
+func (n *NodeStomp) ReceiveFrame(linkActiveID string, topic string, frame frame.Frame) {
+
+	log.WithField("linkActiveID ", linkActiveID).Debugf("func ReceiveFrame()")
+
+	n.CommandCh <- &CommandReceiveFrameStomp{
+		transport.NodeCommand{Cmd: stompReceiveFrameCommand},
+		frame,
 		linkActiveID,
+		topic,
 	}
 }
 
 //Subscribe sends a frame to subscribe activeLink with ID = ActiveLinkID with topic.
-func (n *NodeStomp) Subscribe(topic string) (*chan transport.Frame, error) {
-
-	_, ok := n.LinkActives[linkActiveID]
-	if !ok {
-		log.Errorf("Error: no link actives with such ID=[%s]", linkActiveID)
-		log.Debugf("have %+v", n.LinkActives)
-		return nil, errors.New("Error: no link actives with such ID")
-	}
+func (n *NodeStomp) Subscribe(topic string) (chan frame.Frame, error) {
 
 	var sub = make(chan subscripted, 0)
 
 	n.CommandCh <- &CommandSubscribeStomp{
 		transport.NodeCommand{Cmd: stompSubscribeCommand},
 		topic,
-		linkActiveID,
 		sub,
 	}
 
 	select {
-	case subscriptionCompleted := <-sub:
+	case _ = <-sub:
 		{
-			if subscriptionCompleted.ok {
-				return n.subscriptions[topic][linkActiveID], nil
-			}
-			log.Errorf("Could not subscribe: aclive Link=[%s], topic=[%s]: %s", linkActiveID, topic, subscriptionCompleted.err.Error())
-			return nil, subscriptionCompleted.err
+			return n.subscriptions[topic].ch, nil
 		}
 	}
 }

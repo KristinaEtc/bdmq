@@ -16,7 +16,7 @@ var handlers handlerFactories = make(map[string]HandlerFactory)
 // Handler is an interface for handlers
 // ...
 type Handler interface {
-	OnRead()          // read method
+	OnRead() error    // read method
 	OnConnect() error // connect method
 	//OnWrite([]byte)   // write method
 	OnDisconnect() // disconnect method

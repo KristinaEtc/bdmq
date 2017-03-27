@@ -1,6 +1,7 @@
 package stomp
 
 import (
+	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/ventu-io/slf"
 )
@@ -27,13 +28,42 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 			}
 			log.Debugf("Command=[%s/%d]; frame: [%s]", s.CommandToString(stompSendFrameCommand), stompSendFrameCommand, cmdSendFrame.frame.Dump())
 
-			lActive, ok := s.Node.LinkActives[cmdSendFrame.linkActiveID]
-			if !ok {
-				log.Warnf("Wrong linkActiveID name: %s; ignored.", cmdSendFrame.linkActiveID)
-				return true, false
+			/*
+				subcriptionData, ok := s.Node.subscriptions[cmdSendFrame.topic]
+				if !ok {
+					log.Warnf("Wrong topic name: %s; ignored.", cmdSendFrame.topic)
+					return true, false
+				}
+
+				lActive := s.Node.LinkActives[subcriptionData.linkActiveID]
+			*/
+			log.Debug("Now I'm sending a frame to the 1st LinkActive")
+			for _, lA := range s.Node.LinkActives {
+				lA.GetHandler().(*HandlerStomp).OnWrite(cmdSendFrame.frame)
+				break
 			}
 
-			lActive.GetHandler().(*HandlerStomp).OnWrite(cmdSendFrame.frame)
+			return true, false
+		}
+
+	case stompReceiveFrameCommand:
+		{
+			cmdReceiveFrame, ok := cmd.(*CommandReceiveFrameStomp)
+			if !ok {
+				log.Errorf("Invalid command type %v", cmd)
+				return false, true
+			}
+			log.Debugf("Command=[%s/%d]; frame: [%s]", s.CommandToString(stompReceiveFrameCommand), stompReceiveFrameCommand, cmdReceiveFrame.frame.Dump())
+
+			// getting a topic from hiddr and sending to channels which subscribed for them;
+			// now not implemented
+
+			subData, ok := s.Node.subscriptions[cmdReceiveFrame.topic]
+			if !ok {
+				log.Warnf("Got message for topic=[%s]; nobody subscribed for it.", cmdReceiveFrame.topic)
+				return true, false
+			}
+			subData.ch <- cmdReceiveFrame.frame
 
 			return true, false
 		}
@@ -50,22 +80,16 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 
 			_, ok = s.Node.subscriptions[cmdTopic.topic]
 			if !ok {
-				s.Node.subscriptions[cmdTopic.topic] = make(map[string]*chan transport.Frame, 0)
+				chTopic := make(chan frame.Frame, 0)
+				s.Node.subscriptions[cmdTopic.topic] = Subscription{
+					ch: chTopic,
+				}
 			}
 
 			var res subscripted
-
-			ch, err := s.Node.LinkActives[cmdTopic.linkActiveID].GetHandler().(*HandlerStomp).Subscribe(cmdTopic.topic)
-			if err != nil {
-				res.ok = false
-				res.err = err
-				cmdTopic.sub <- res
-				return true, false // isExiting?
-			}
 			res.ok = true
-			res.err = nil
-			s.Node.subscriptions[cmdTopic.topic][cmdTopic.linkActiveID] = ch
 			cmdTopic.sub <- res
+
 			return true, false
 
 		}
@@ -117,6 +141,8 @@ func (s *ProcessorStomp) CommandToString(c transport.CommandID) string {
 		return "stompSubscribe"
 	case 102:
 		return "stompUnsubscribe"
+	case 103:
+		return "stompReceiveFrame"
 	default:
 		return "unknown"
 	}

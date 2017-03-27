@@ -1,11 +1,10 @@
 package stomp
 
 import (
-	"errors"
 	"io"
 
+	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
-	"github.com/go-stomp/stomp/frame"
 	"github.com/ventu-io/slf"
 )
 
@@ -25,24 +24,24 @@ func (h HandlerStompFactory) InitHandler(l transport.LinkWriter, n *transport.No
 
 	log.Debugf("HandlerStompFactory.InitHandler() enter")
 	handler := &HandlerStomp{
-		link:     l,
-		node:     n,
-		Writer:   frame.NewWriter(wd),
-		Reader:   frame.NewReader(rd),
-		log:      slf.WithContext("stompHandler").WithFields(slf.Fields{"ID": l.ID()}),
-		topicChs: make(map[string]*chan transport.Frame),
+		link: l,
+		//node:   n,
+		Writer: frame.NewWriter(wd),
+		Reader: frame.NewReader(rd),
+		log:    slf.WithContext("stompHandler").WithFields(slf.Fields{"ID": l.ID()}),
+		//topicChs: make(map[string]*chan transport.Frame),
 	}
 	return handler
 }
 
 // HandlerStomp realize Handler interface from transport package
 type HandlerStomp struct {
-	link     transport.LinkWriter
-	node     *transport.Node
-	Reader   *frame.Reader
-	Writer   *frame.Writer
-	log      slf.Logger
-	topicChs map[string]*chan transport.Frame
+	link   transport.LinkWriter
+	node   NodeStomp
+	Reader *frame.Reader
+	Writer *frame.Writer
+	log    slf.Logger
+	//	topicChs map[string]*chan transport.Frame
 }
 
 // processFrame add frame for indicated topic
@@ -64,30 +63,32 @@ func processFrame(topic string, frame *frame.Frame) error {
 }
 
 // OnRead implements OnRead method from transport.Heandler interface
-func (h *HandlerStomp) OnRead() {
+func (h *HandlerStomp) OnRead() error {
 
 	//h.log.Infof("message= %v", string(msg))
 
 	for {
-		frame, err := h.Reader.Read()
+		fr, err := h.Reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				h.log.Errorf("connection closed: eof")
 			} else {
 				h.log.Errorf("read failed: %s", err.Error())
 			}
-			return
+			return err
 		}
-		if frame == nil {
+		if fr == nil {
 			h.log.Infof("heartbeat")
 			continue
 		}
 
-		processFrame("test", frame)
+		//	h.log.Infof("message= %s", fr.Dump())
+		h.node.ReceiveFrame(h.link.ID(), "test-topic", *fr)
 	}
 
 }
 
+/*
 // Subscribe returns channel for topics receiving
 func (h *HandlerStomp) Subscribe(topic string) (*chan transport.Frame, error) {
 	h.log.Debugf("Subscribe")
@@ -103,18 +104,25 @@ func (h *HandlerStomp) Subscribe(topic string) (*chan transport.Frame, error) {
 	log.Debug("Subscribed successfully")
 	return &ch, nil
 }
+*/
+
+func (h *HandlerStomp) initNodeStomp() {
+	h.node = *nodes["NodeStomp-ID"]
+}
 
 // OnConnect implements OnConnect method from Heandler interface
 func (h *HandlerStomp) OnConnect() error {
 	h.log.Debugf("OnConnect %d", h.link.Mode())
+	h.initNodeStomp()
 	return nil
 }
 
 // OnWrite implements OnWrite method from transport.Heandler interface
-func (h *HandlerStomp) OnWrite(frame *transport.Frame) {
+func (h *HandlerStomp) OnWrite(frame frame.Frame) {
 
-	h.log.Debug("stomp handler Write")
-	h.Writer.Write(frame)
+	h.log.Debug("OnWrite")
+	h.Writer.Write(&frame)
+	h.log.Debug("OnWrite exit")
 	return
 }
 
