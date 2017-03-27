@@ -67,6 +67,7 @@ const (
 	quitLinkActive commandActiveLink = iota
 	errorReadingActive
 	sendMessageActive
+	registerTopicActive
 )
 
 func (c commandActiveLink) String() string {
@@ -77,6 +78,8 @@ func (c commandActiveLink) String() string {
 		return "errorReadingActive"
 	case 2:
 		return "sendMessage"
+	case 3:
+		return "registerTopicActive"
 	default:
 		return "unknown"
 	}

@@ -3,11 +3,9 @@ package frame
 import (
 	"bytes"
 	"fmt"
-	"io"
-
-	"github.com/KristinaEtc/bdmq/transport"
-	"github.com/ventu-io/slf"
 )
+
+/*
 
 // FactoryStomp is a factory for creating ProcessorStomp
 type FactoryStomp struct {
@@ -19,7 +17,7 @@ type ProcessorStomp struct {
 	Reader     *Reader
 	Writer     *Writer
 	log        slf.Logger
-	topicCh    chan []byte
+	topicCh    *chan []byte
 }
 
 // InitFrameProcessor creates a new entity of ProcessorStomp and adds it to Node process slice
@@ -49,7 +47,7 @@ func (p *ProcessorStomp) ToByte(data interface{}) []byte {
 	/*b, err := json.Marshal(group)
 	if err != nil {
 		fmt.Println("error:", err)
-	}*/
+	}
 	f := data.(Frame)
 	p.Writer.Write(&f)
 	return []byte("data.(*Frame)")
@@ -71,10 +69,18 @@ func (p *ProcessorStomp) Read() error {
 			continue
 		}
 
-		p.topicCh <- []byte(ff.Dump())
-		p.log.Infof("Got frame: %s", (ff.Dump()))
+		topicName, ok := ff.Header[topic]
+		if !ok {
+			log.Warn("Got message without topic header; ignored")
+			continue
+		}
+		// TODO: parse by commas
+		p.topicChs[topicName] <- []byte(ff.Dump())
+
 	}
 }
+
+*/
 
 // A Frame represents a STOMP frame. A frame consists of a command
 // followed by a collection of header entries, and then an optional

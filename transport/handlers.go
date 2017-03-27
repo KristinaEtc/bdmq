@@ -1,6 +1,8 @@
 package transport
 
 import (
+	"io"
+
 	"github.com/ventu-io/slf"
 )
 
@@ -14,15 +16,17 @@ var handlers handlerFactories = make(map[string]HandlerFactory)
 // Handler is an interface for handlers
 // ...
 type Handler interface {
-	OnRead([]byte)    // read method
+	OnRead()          // read method
 	OnConnect() error // connect method
-	OnWrite([]byte)   // write method
-	OnDisconnect()    // disconnect method
+	//OnWrite([]byte)   // write method
+	OnDisconnect() // disconnect method
+	//Subscribe(string) (*chan Frame, error)
 }
 
 // HandlerFactory is an interface for creating new Handler
 type HandlerFactory interface {
-	InitHandler(LinkWriter, *Node) Handler // creates new Handler
+	//InitHandler(LinkWriter, *Node) Handler // creates new Handler
+	InitHandler(LinkWriter, *Node, io.Reader, io.Writer) Handler
 }
 
 // RegisterHandlerFactory added HandlerFactory hFactory with name handlerName.

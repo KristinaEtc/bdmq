@@ -1,17 +1,16 @@
 package main
 
-import _ "github.com/KristinaEtc/slflog"
-
 import (
 	"bufio"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
+	_ "github.com/KristinaEtc/slflog"
+	"github.com/go-stomp/stomp/frame"
 	"github.com/ventu-io/slf"
 )
 
@@ -38,6 +37,7 @@ var globalOpt = Global{
 	},
 }
 
+/*
 func read(done chan bool, n *stomp.NodeStomp) {
 	defer func() {
 		done <- true
@@ -52,7 +52,7 @@ func read(done chan bool, n *stomp.NodeStomp) {
 			message := "message:" + scanner.Text()
 			frame := frame.New(
 				"COMMIT",
-				"test:tttt", "test2:2", "test1:1", message,
+				"topic:topic-test", "test2:2", "test1:1", message,
 			)
 
 			n.SendFrame("topic-test", frame)
@@ -84,14 +84,34 @@ func listen(done chan bool, n *stomp.NodeStomp) {
 	}
 }
 
+func subscribe() (map[string]chan[]byte, bool) {
+
+	var subscriptions = make(mapp[string]chan[]byte)
+	for _, link := range globalOpt.Links {
+		if len(link.Topics) != 0 {
+			for _, topic := range link.Topics {
+				ch, err = n.Subscribe(link.LinkID, topic)
+				if err != nil{
+					log.Errorf("could not subscribe link [%s] for topic [%s]: %s", link.LinkID, topic, err.Error())
+					return nil, err
+				}
+				subscriptions[topic] = ch
+			}
+		}
+	}
+	return false
+}
+*/
+
 func main() {
 
 	config.ReadGlobalConfig(&globalOpt, "stomp.go")
 	log.Debugf("config=%+v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("stomp", stomp.HandlerStompFactory{})
-	transport.RegisterFrameProcessorFactory("stomp", frame.FactoryStomp{})
 	n := stomp.NewNode()
+
+	n.AddCmdProcessor(&stomp.ProcessorStomp{Node: n})
 
 	err := n.InitLinkDesc(globalOpt.Links)
 	if err != nil {
@@ -104,9 +124,30 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	done := make(chan bool)
-	go listen(done, n)
-	go read(done, n)
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		if strings.ToLower(scanner.Text()) == "q" {
+			n.Stop()
+			//time.Sleep(time.Second * 5)
+			break
+			//os.Exit(0)
+		} else {
 
-	<-done
+			message := "message:" + "yi"
+			frame := frame.New(
+				"COMMIT",
+				"from:ID-2", "topic:test-topic", "test1:1", message,
+			)
+
+			n.Subscribe("test-topic")
+			n.SendFrame("ID-2", frame)
+			time.Sleep(time.Second * 3)
+			break
+			//	n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
+		}
+	}
+
+	for scanner.Scan() {
+		scanner.Text()
+	}
 }

@@ -55,7 +55,6 @@ func (lC *LinkControl) sendCommand(cmd cmdContrlLink) {
 	} else {
 		log.Warnf("sendCommand %s channel overflow", lc.getId())
 	}*/
-
 }
 
 // Close sends command to close ControlLink
@@ -289,19 +288,6 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 		commandCh:    make(chan cmdActiveLink),
 		linkControl:  lC,
 		log:          slf.WithContext("LinkActive").WithFields(slf.Fields{"ID": id}),
-		topicCh:      make(chan []byte),
-	}
-
-	if lC.getLinkDesc().topic != "" {
-		lC.node.RegisterTopic(lC.getLinkDesc().topic, &linkActive)
-	}
-
-	frameProcessorFactory, ok := frameProcessors[lC.linkDesc.frameProcessor]
-	if !ok {
-		linkActive.log.Warnf("initLinkActive: frame processor %s not found, will be used default", frameProcessorFactory)
-		linkActive.FrameProcessor = dFrameProcessorFactory.initFrameProcessor(linkActive, conn, conn)
-	} else {
-		linkActive.FrameProcessor = frameProcessorFactory.InitFrameProcessor(linkActive, conn, conn)
 	}
 
 	handlerName := lC.getLinkDesc().handler
@@ -315,7 +301,7 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	}
 
 	node := lC.getNode()
-	h := hFactory.InitHandler(&linkActive, node)
+	h := hFactory.InitHandler(&linkActive, node, linkActive.conn, linkActive.conn)
 	linkActive.handler = h
 
 	node.RegisterLinkActive(&linkActive)

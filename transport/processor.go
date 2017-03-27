@@ -140,52 +140,6 @@ func (d *DefaultProcessor) ProcessCommand(cmd Command) (known bool, isExiting bo
 			}
 			return true, false
 		}
-	case registerTopic:
-		{
-			cmdTopic, ok := cmd.(*NodeCommandTopic)
-			if !ok {
-				log.Errorf("Invalid command type %v", cmd)
-				return false, true
-			}
-
-			_, ok = n.Topics[cmdTopic.topicName]
-			if !ok {
-				n.Topics[cmdTopic.topicName] = make(map[string]*LinkActive, 0)
-			}
-
-			n.Topics[cmdTopic.topicName][cmdTopic.active.ID()] = cmdTopic.active
-
-			log.Debugf("[registerTopic] topic=%s", cmdTopic.topicName)
-			return true, false
-		}
-	case unregisterTopic:
-		{
-			cmdTopic, ok := cmd.(*NodeCommandTopic)
-			if !ok {
-				log.Errorf("Invalid command type %v", cmd)
-				return false, true
-			}
-
-			topicMap, ok := n.Topics[cmdTopic.topicName]
-			if !ok {
-				log.Warnf("No such topic %s; ignored.", cmdTopic.topicName)
-				return true, false
-			}
-
-			_, ok = topicMap[cmdTopic.active.ID()]
-			if !ok {
-				log.Warnf("LinkActive with id=%s doesn't subscribe for topic %s; ignored.", cmdTopic.active.ID(), cmdTopic.topicName)
-				return true, false
-			}
-
-			delete(topicMap, cmdTopic.active.ID())
-			if len(topicMap) == 0 {
-				delete(n.Topics, cmdTopic.topicName)
-			}
-
-			log.Debugf("[unregisterTopic] LinkActive with id=%s from topic=%d", cmdTopic.active.ID(), cmdTopic.topicName)
-			return true, false
-		}
 	default:
 		{
 			//log.Warnf("Unknown command: %s", cmdMsg.cmd)

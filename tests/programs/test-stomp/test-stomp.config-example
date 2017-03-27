@@ -7,8 +7,8 @@
         "Mode": "server",
         "Handler": "stomp",
         "BufSize": 1024,
-        "FrameProcessor": "stomp",
-        "Topic": "topic-test"
+        "Topic": ["topic-test"],
+        "FrameProcessor": "stomp"
     },
     {
         "LinkID": "ID1",

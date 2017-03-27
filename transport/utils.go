@@ -4,13 +4,12 @@ package transport
 // The main purpose to not use LincDesc directly is global varuables, which need to
 // parse from json.
 type LinkDescFromJSON struct {
-	LinkID         string
-	Address        string
-	Mode           string
-	Handler        string
-	BufSize        int
-	FrameProcessor string
-	Topic          string
+	LinkID  string
+	Address string
+	Mode    string
+	Handler string
+	BufSize int
+	Topic   []string
 }
 
 /*

@@ -1,13 +1,12 @@
 package transport
 
-import (
-	"bufio"
-	"io"
-	"net"
+// Frame is an interface for different types of frames
+type Frame interface {
+	Dump() string
+	F()
+}
 
-	"github.com/ventu-io/slf"
-)
-
+/*
 type frameProcessorFactories map[string]FrameProcessorFactory
 
 var frameProcessors frameProcessorFactories = make(map[string]FrameProcessorFactory)
@@ -69,6 +68,7 @@ func (d *defaultFrameProcessor) newReader(rd io.Reader) (r io.Reader) {
 	return
 }
 
+/*
 // Read waiting input data from reader and then call
 // handler.OnRead() to process it.
 func (d *defaultFrameProcessor) Read() error {
@@ -86,3 +86,5 @@ func (d *defaultFrameProcessor) Read() error {
 func (d *defaultFrameProcessor) ToByte(msg interface{}) []byte {
 	return (msg.([]byte))
 }
+
+*/

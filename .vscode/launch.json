@@ -9,7 +9,7 @@
             "remotePath": "",
             "port": 2345,
             "host": "127.0.0.1",
-            "program": "${workspaceRoot}",
+            "program": "${workspaceRoot}/tests/programs/test-stomp/test-stomp.go",
             "env": {},
             "args": [],
             "showLog": true

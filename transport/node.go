@@ -1,9 +1,7 @@
 package transport
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/ventu-io/slf"
@@ -11,13 +9,12 @@ import (
 
 // LinkDesc stores all configs of Links for their launching
 type LinkDesc struct {
-	linkID         string
-	address        string
-	mode           string
-	handler        string
-	bufSize        int
-	frameProcessor string
-	topic          string
+	linkID  string
+	address string
+	mode    string
+	handler string
+	bufSize int
+	topics  []string
 }
 
 // Node is the main entity. It is a datacore of a program
@@ -70,30 +67,17 @@ func checkLinkMode(mode string) (int, error) {
 	return 2, fmt.Errorf("Wrong link mode: %s", mode)
 }
 
-// GetChannel returns the 1st channel of ActiveLink with such ID
-func (n *Node) GetChannel(ActiveLinkID string) (chan []byte, error) {
-	for _, v := range n.Topics {
-		for id, lA := range v {
-			if strings.Compare(id, ActiveLinkID) == 0 {
-				return lA.GetTopicCh(), nil
-			}
-		}
-	}
-	return nil, errors.New("No links with such id")
-}
-
 // InitLinkDesc creates LinkDesc for every config struct lDescJSON
 func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 
 	for _, l := range lDescJSON {
 
 		lDesc := &LinkDesc{
-			address:        l.Address,
-			linkID:         l.LinkID,
-			mode:           l.Mode,
-			handler:        l.Handler,
-			frameProcessor: l.FrameProcessor,
-			topic:          l.Topic,
+			address: l.Address,
+			linkID:  l.LinkID,
+			mode:    l.Mode,
+			handler: l.Handler,
+			topics:  l.Topic,
 		}
 		n.LinkDescs[l.LinkID] = lDesc
 	}
@@ -174,9 +158,9 @@ func (n *Node) UnregisterLinkActive(lActive *LinkActive) {
 }
 
 // RegisterTopic sends a command no Node to register a topic for subscription
-func (n *Node) RegisterTopic(topic string, lA *LinkActive) {
+func (n *Node) RegisterTopic(lA *LinkActive, topic string) {
 
-	log.Debugf("func  RegisterTopic() %s", topic)
+	log.Debugf("func  RegisterTopic() [%s] for link=[%s]", topic, lA.LinkActiveID)
 	n.CommandCh <- &NodeCommandTopic{
 		NodeCommand: NodeCommand{Cmd: registerTopic},
 		topicName:   topic,
@@ -185,9 +169,9 @@ func (n *Node) RegisterTopic(topic string, lA *LinkActive) {
 }
 
 // UnregisterTopic sends a command no Node to unregister a topic for subscription
-func (n *Node) UnregisterTopic(topic string, lA *LinkActive) {
+func (n *Node) UnregisterTopic(lA *LinkActive, topic string) {
 
-	log.Debugf("func  UnregisterTopic() %s", topic)
+	log.Debugf("func  UnregisterTopic() %s for link=[%s]", topic, lA.LinkActiveID)
 	n.CommandCh <- &NodeCommandTopic{
 		NodeCommand: NodeCommand{Cmd: unregisterTopic},
 		topicName:   topic,
