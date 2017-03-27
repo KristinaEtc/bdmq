@@ -1,17 +1,16 @@
 package main
 
-import _ "github.com/KristinaEtc/slflog"
-
 import (
 	"bufio"
 	"os"
 	"strings"
+	"sync"
 
+	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
-
-	"github.com/KristinaEtc/bdmq/frame"
+	_ "github.com/KristinaEtc/slflog"
 	"github.com/ventu-io/slf"
 )
 
@@ -38,11 +37,11 @@ var globalOpt = Global{
 	},
 }
 
-//func read(done chan bool, n *stomp.NodeStomp) {
-func read(ch chan frame.Frame) {
-	//defer func() {
-	//	done <- true
-	//}()
+func read(wg *sync.WaitGroup, ch chan frame.Frame) {
+	defer func() {
+		wg.Done()
+	}()
+
 	for {
 		select {
 		case fr := <-ch:
@@ -51,50 +50,30 @@ func read(ch chan frame.Frame) {
 	}
 }
 
-/*
-
-func listen(done chan bool, n *stomp.NodeStomp) {
+func write(wg *sync.WaitGroup, n *stomp.NodeStomp) {
 	defer func() {
-		done <- true
+		wg.Done()
 	}()
 
-	var ch chan []byte
-	var err error
-	for {
-		ch, err = n.GetChannel("ID2")
-		if err != nil {
-			log.Errorf("Could not get link channel: %s", err.Error())
-			time.Sleep(time.Second * 1)
-			continue
-		}
-		log.Info("Got channel")
-		break
-	}
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		if strings.ToLower(scanner.Text()) == "q" {
+			n.Stop()
+			break
+		} else {
 
-	select {
-	case msgByte := <-ch:
-		log.Infof("Got frame: %s", string(msgByte))
-	}
-}
+			message := scanner.Text() + "yi"
+			frame := frame.New(
+				"COMMIT",
+				"from:ID-2", "topic:test-topic", "test1:1", message,
+			)
 
-func subscribe() (map[string]chan[]byte, bool) {
+			n.SendFrame("test-topic", *frame)
 
-	var subscriptions = make(mapp[string]chan[]byte)
-	for _, link := range globalOpt.Links {
-		if len(link.Topics) != 0 {
-			for _, topic := range link.Topics {
-				ch, err = n.Subscribe(link.LinkID, topic)
-				if err != nil{
-					log.Errorf("could not subscribe link [%s] for topic [%s]: %s", link.LinkID, topic, err.Error())
-					return nil, err
-				}
-				subscriptions[topic] = ch
-			}
+			//	n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
 		}
 	}
-	return false
 }
-*/
 
 func main() {
 
@@ -123,24 +102,12 @@ func main() {
 		return
 	}
 
-	go read(ch)
+	var wg sync.WaitGroup
+	wg.Add(1)
 
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		if strings.ToLower(scanner.Text()) == "q" {
-			n.Stop()
-			break
-		} else {
+	go read(&wg, ch)
+	go write(&wg, n)
 
-			message := scanner.Text() + "yi"
-			frame := frame.New(
-				"COMMIT",
-				"from:ID-2", "topic:test-topic", "test1:1", message,
-			)
+	wg.Wait()
 
-			n.SendFrame("test-topic", *frame)
-
-			//	n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
-		}
-	}
 }
