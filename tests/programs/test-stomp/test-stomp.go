@@ -1,16 +1,16 @@
 package main
 
+import _ "github.com/KristinaEtc/slflog"
+
 import (
 	"bufio"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
-	_ "github.com/KristinaEtc/slflog"
 	"github.com/ventu-io/slf"
 )
 
@@ -37,10 +37,10 @@ var globalOpt = Global{
 	},
 }
 
-func read(wg *sync.WaitGroup, ch chan frame.Frame) {
-	defer func() {
-		wg.Done()
-	}()
+func read(ch chan frame.Frame) {
+	//	defer func() {
+	//		wg.Done()
+	//	}()
 
 	for {
 		select {
@@ -50,10 +50,11 @@ func read(wg *sync.WaitGroup, ch chan frame.Frame) {
 	}
 }
 
-func write(wg *sync.WaitGroup, n *stomp.NodeStomp) {
-	defer func() {
-		wg.Done()
-	}()
+func write(n *stomp.NodeStomp) {
+
+	//	defer func() {
+	//		wg.Done()
+	//	}()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -102,12 +103,9 @@ func main() {
 		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	go read(ch)
+	write(n)
 
-	go read(&wg, ch)
-	go write(&wg, n)
-
-	wg.Wait()
+	//	wg.Wait()
 
 }

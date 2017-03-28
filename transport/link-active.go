@@ -110,7 +110,11 @@ func (lA *LinkActive) Read() {
 			lA.linkControl.log.Warn("LinkActive.Read() exiting")
 		}
 	*/
-	lA.GetHandler().OnRead()
+	err := lA.GetHandler().OnRead()
+	if err != nil {
+		lA.linkControl.NotifyErrorRead(err)
+		lA.log.Warn("exiting")
+	}
 
 	//lA.Handler.OnRead(message)
 	//msgStr := strings.TrimSpace(string(message))

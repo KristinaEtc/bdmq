@@ -247,7 +247,7 @@ func (lC *LinkControl) waitExit() {
 		case _ = <-timeout.C:
 			return
 		case command := <-lC.commandCh:
-			lC.log.Debugf("WaitExit: cmd %+v", command)
+			lC.log.Infof("WaitExit: cmd %+v", command)
 			return
 		}
 	}
@@ -259,7 +259,7 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 	select {
 	case command := <-lC.commandCh:
 		if command.cmd == quitControlLink {
-			lC.log.Debugf("linkControl: quit received %s", lC.getID())
+			lC.log.Infof("linkControl: quit received %s", lC.getID())
 			lC.isExiting = true
 			conn.Close()
 			lC.waitExit()
@@ -338,7 +338,7 @@ func (lC *LinkControl) WorkClient() {
 		go lC.initLinkActive(conn)
 		isExiting := lC.WaitCommandClient(conn)
 		if isExiting {
-			lC.log.Debug("WorkClient: isExiting client")
+			lC.log.Warn("WorkClient: isExiting client")
 			break
 		}
 		lC.log.Debug("WorkClient: reconnect")
@@ -363,7 +363,7 @@ func (lC *LinkControl) WorkServer() {
 
 		isExiting := lC.WaitCommandServer(ln)
 		if isExiting {
-			lC.log.Debug("WorkClient: isExiting server")
+			lC.log.Warn("WorkServer: isExiting server")
 			break
 		}
 	}
