@@ -1,6 +1,12 @@
 tests/programs/*/logs/
+tests/programs/*/*/logs/
 tests/programs/*/*.config
+tests/programs/*/*/*.config
+
 tests/programs/test-stomp/test-stomp.config
+
+tests/programs/test-stomp/separate/server
+tests/programs/test-stomp/separate/client
 
 tests/programs/test-transport/test-transport
 tests/programs/test-stomp/test-stomp
