@@ -8,12 +8,6 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-/*
-type Frame interface{
-	Dump()
-}
-*/
-
 // HandlerStompFactory is a factory of HandlerStomp
 type HandlerStompFactory struct {
 }
@@ -27,6 +21,7 @@ func (h HandlerStompFactory) InitHandler(n *transport.Node, l transport.LinkWrit
 		link:   l,
 		Writer: frame.NewWriter(l),
 		log:    slf.WithContext("stompHandler").WithFields(slf.Fields{"ID": l.ID()}),
+		node:   n,
 		//topicChs: make(map[string]*chan transport.Frame),
 	}
 	return handler
@@ -35,7 +30,7 @@ func (h HandlerStompFactory) InitHandler(n *transport.Node, l transport.LinkWrit
 // HandlerStomp realize Handler interface from transport package
 type HandlerStomp struct {
 	link   transport.LinkWriter
-	node   NodeStomp
+	node   *transport.Node
 	Writer *frame.Writer
 	log    slf.Logger
 	//	topicChs map[string]*chan transport.Frame
@@ -57,6 +52,18 @@ func processFrame(topic string, frame *frame.Frame) error {
 		p.topicChs[topicName] <- []byte(frame)
 	*/
 	return nil
+}
+
+// receiveFrame used for recieving a frame to stompProcessor.
+func (h *HandlerStomp) receiveFrame(linkActiveID string, topic string, frame frame.Frame) {
+	h.log.Debugf("func ReceiveFrame()")
+
+	h.node.CommandCh <- &CommandReceiveFrameStomp{
+		transport.NodeCommand{Cmd: stompReceiveFrameCommand},
+		frame,
+		linkActiveID,
+		topic,
+	}
 }
 
 // OnRead implements OnRead method from transport.Heandler interface
@@ -81,9 +88,8 @@ func (h *HandlerStomp) OnRead(rd io.Reader) error {
 		}
 
 		//	h.log.Infof("message= %s", fr.Dump())
-		h.node.ReceiveFrame(h.link.ID(), "test-topic", *fr)
+		h.receiveFrame(h.link.ID(), "test-topic", *fr)
 	}
-
 }
 
 /*
@@ -104,14 +110,20 @@ func (h *HandlerStomp) Subscribe(topic string) (*chan transport.Frame, error) {
 }
 */
 
-func (h *HandlerStomp) initNodeStomp() {
-	h.node = *nodes["NodeStomp-ID"]
+// receiveFrame used for recieving a frame to stompProcessor.
+func (h *HandlerStomp) registerStompHandler() {
+	h.log.Debugf("func registerStompHandler()")
+
+	h.node.CommandCh <- &CommandRegisterHandlerStomp{
+		transport.NodeCommand{Cmd: stompRegisterStompHandlerCommand},
+		h,
+	}
 }
 
 // OnConnect implements OnConnect method from Heandler interface
 func (h *HandlerStomp) OnConnect() error {
 	h.log.Debugf("OnConnect %d", h.link.Mode())
-	h.initNodeStomp()
+	h.registerStompHandler()
 	return nil
 }
 

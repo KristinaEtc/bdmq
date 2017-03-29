@@ -5,9 +5,6 @@ import (
 	"github.com/KristinaEtc/bdmq/transport"
 )
 
-// Nodes for using them in handlers!
-var nodes = make(map[string]*NodeStomp)
-
 type subscripted struct {
 	ok bool
 }
@@ -23,18 +20,15 @@ type Subscription struct {
 type NodeStomp struct {
 	*transport.Node
 	subscriptions map[string]Subscription // groupped by topic
+	handlers      []*HandlerStomp
 }
 
 // NewNode creates a new NodeStomp object and returns it.
 func NewNode() *NodeStomp {
 
 	n := &NodeStomp{transport.NewNode(),
-		make(map[string]Subscription)}
-
-	// TODO; make it ok; now works with one node only
-	n.NodeID = "NodeStomp-ID"
-
-	nodes[n.NodeID] = n
+		make(map[string]Subscription),
+		make([]*HandlerStomp, 0)}
 
 	return n
 }
@@ -47,19 +41,6 @@ func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},
 		frame,
-		topic,
-	}
-}
-
-// ReceiveFrame used in handlers for recieving a frame.
-func (n *NodeStomp) ReceiveFrame(linkActiveID string, topic string, frame frame.Frame) {
-
-	log.WithField("linkActiveID ", linkActiveID).Debugf("func ReceiveFrame()")
-
-	n.CommandCh <- &CommandReceiveFrameStomp{
-		transport.NodeCommand{Cmd: stompReceiveFrameCommand},
-		frame,
-		linkActiveID,
 		topic,
 	}
 }
@@ -82,17 +63,3 @@ func (n *NodeStomp) Subscribe(topic string) (chan frame.Frame, error) {
 		}
 	}
 }
-
-/*
-// RecieveFrame
-func (n *NodeStomp) RecieveFrame(activeLinkID string, frame *frame.Frame) {
-
-	log.Debugf("funcSendFrame() for [%s]", activeLinkID)
-
-	n.CommandCh <- &CommandSendFrameStomp{
-		transport.NodeCommand{Cmd: stompSendFrameCommand},
-		*frame,
-		activeLinkID,
-	}
-}
-*/

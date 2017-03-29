@@ -37,10 +37,10 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 
 				lActive := s.Node.LinkActives[subcriptionData.linkActiveID]
 			*/
-			log.Debug("Now I'm sending a frame to the 1st LinkActive")
-			for _, lA := range s.Node.LinkActives {
-				lA.GetHandler().(*HandlerStomp).OnWrite(cmdSendFrame.frame)
-				break
+			log.Debug("Now I'm sending a frame to the 1st handler")
+			for _, h := range s.Node.handlers {
+				h.OnWrite(cmdSendFrame.frame)
+				//break
 			}
 
 			return true, false
@@ -94,36 +94,49 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 
 		}
 
-		/*
-			case unregisterTopic:
-				{
-					cmdTopic, ok := cmd.(*NodeCommandTopic)
-					if !ok {
-						log.Errorf("Invalid command type %v", cmd)
-						return false, true
-					}
+	/*
+		case unregisterTopic:
+			{
+				cmdTopic, ok := cmd.(*NodeCommandTopic)
+				if !ok {
+					log.Errorf("Invalid command type %v", cmd)
+					return false, true
+				}
 
-					topicMap, ok := n.Topics[cmdTopic.topicName]
-					if !ok {
-						log.Warnf("No such topic %s; ignored.", cmdTopic.topicName)
-						return true, false
-					}
-
-					_, ok = topicMap[cmdTopic.active.ID()]
-					if !ok {
-						log.Warnf("LinkActive with id=%s doesn't subscribe for topic %s; ignored.", cmdTopic.active.ID(), cmdTopic.topicName)
-						return true, false
-					}
-
-					delete(topicMap, cmdTopic.active.ID())
-					if len(topicMap) == 0 {
-						delete(n.Topics, cmdTopic.topicName)
-					}
-
-					log.Debugf("[unregisterTopic] Lin kActive with id=%s from topic=%d", cmdTopic.active.ID(), cmdTopic.topicName)
+				topicMap, ok := n.Topics[cmdTopic.topicName]
+				if !ok {
+					log.Warnf("No such topic %s; ignored.", cmdTopic.topicName)
 					return true, false
 				}
-		*/
+
+				_, ok = topicMap[cmdTopic.active.ID()]
+				if !ok {
+					log.Warnf("LinkActive with id=%s doesn't subscribe for topic %s; ignored.", cmdTopic.active.ID(), cmdTopic.topicName)
+					return true, false
+				}
+
+				delete(topicMap, cmdTopic.active.ID())
+				if len(topicMap) == 0 {
+					delete(n.Topics, cmdTopic.topicName)
+				}
+
+				log.Debugf("[unregisterTopic] Lin kActive with id=%s from topic=%d", cmdTopic.active.ID(), cmdTopic.topicName)
+				return true, false
+			}
+	*/
+	case stompRegisterStompHandlerCommand:
+		{
+
+			cmdHandlerRegister, ok := cmd.(*CommandRegisterHandlerStomp)
+			if !ok {
+				log.Errorf("Invalid command type %v", cmd)
+				return false, true
+			}
+
+			s.Node.handlers = append(s.Node.handlers, cmdHandlerRegister.handler)
+
+			return true, false
+		}
 	default:
 		{
 			return false, false
@@ -143,6 +156,8 @@ func (s *ProcessorStomp) CommandToString(c transport.CommandID) string {
 		return "stompUnsubscribe"
 	case 103:
 		return "stompReceiveFrame"
+	case 104:
+		return "stompRegisterStompHandlerCommand"
 	default:
 		return "unknown"
 	}
