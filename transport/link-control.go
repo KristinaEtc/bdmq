@@ -301,7 +301,7 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	}
 
 	node := lC.getNode()
-	h := hFactory.InitHandler(&linkActive, node, linkActive.conn, linkActive.conn)
+	h := hFactory.InitHandler(node, &linkActive)
 	linkActive.handler = h
 
 	node.RegisterLinkActive(&linkActive)

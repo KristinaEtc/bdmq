@@ -1,7 +1,12 @@
 package handlers
 
-import "github.com/KristinaEtc/bdmq/transport"
-import "github.com/ventu-io/slf"
+import (
+	"bufio"
+	"io"
+
+	"github.com/KristinaEtc/bdmq/transport"
+	"github.com/ventu-io/slf"
+)
 
 var log = slf.WithContext("test handlers")
 
@@ -11,7 +16,7 @@ type HandlerEchoFactory struct {
 
 // InitHandler creates a new HandlerEcho and returns it.
 // InitHandler is a function of transport.HandlerFactory.
-func (h HandlerEchoFactory) InitHandler(l transport.LinkWriter, n *transport.Node) transport.Handler {
+func (h HandlerEchoFactory) InitHandler(n *transport.Node, l transport.LinkWriter) transport.Handler {
 
 	log.Debugf("InitHandler")
 	handler := &HandlerEcho{
@@ -28,15 +33,24 @@ type HandlerEcho struct {
 }
 
 // OnRead implements OnRead method from transport.Handler interface
-func (h *HandlerEcho) OnRead(msg []byte) {
+func (h *HandlerEcho) OnRead(rd io.Reader) error {
 
-	//msgStr := strings.TrimSpace(string(msg))
-	//log.Debugf("OnRead msg=%s. Resending it.", msgStr)
-	err := h.link.Write(msg)
-	if err != nil {
-		log.WithField("ID=", h.link.ID()).Errorf("Error read: %s", err.Error())
+	var msg []byte
+	var err error
+	for {
+		msg, err = bufio.NewReader(rd).ReadBytes('\n')
+		if err != nil {
+			log.Errorf("Error read: %s", err.Error())
+			return err
+		}
+		//msgStr := strings.TrimSpace(string(msg))
+		//log.Debugf("OnRead msg=%s. Resending it.", msgStr)
+		_, err = h.link.Write(msg)
+		if err != nil {
+			log.WithField("ID=", h.link.ID()).Errorf("Error read: %s", err.Error())
+			return err
+		}
 	}
-
 }
 
 // OnConnect implements OnConnect method from transport.Handler interface
@@ -61,7 +75,7 @@ func (h *HandlerEcho) OnConnect() error {
 func (h *HandlerEcho) OnWrite(msg []byte) {
 
 	log.WithField("ID=", h.link.ID()).Debugf("OnWrite")
-	err := h.link.Write(msg)
+	_, err := h.link.Write(msg)
 	if err != nil {
 		log.WithField("ID=", h.link.ID()).Errorf("Error read: %s", err.Error())
 	}

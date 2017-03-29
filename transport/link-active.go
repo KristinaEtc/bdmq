@@ -92,11 +92,11 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 
 // Write gets msg and writes it to connection. It is an implementation of
 // of method of interface LinkWriter.
-func (lA *LinkActive) Write(msg []byte) error {
+func (lA *LinkActive) Write(msg []byte) (int, error) {
 
 	lA.log.Debug("LinkActive Write() enter")
-	lA.conn.Write(msg)
-	return nil
+	n, err := lA.conn.Write(msg)
+	return n, err
 }
 
 // Read calls method Read() from frameProcess interface.
@@ -110,7 +110,7 @@ func (lA *LinkActive) Read() {
 			lA.linkControl.log.Warn("LinkActive.Read() exiting")
 		}
 	*/
-	err := lA.GetHandler().OnRead()
+	err := lA.GetHandler().OnRead(lA.conn)
 	if err != nil {
 		lA.linkControl.NotifyErrorRead(err)
 		lA.log.Warn("exiting")

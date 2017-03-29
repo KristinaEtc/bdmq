@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bufio"
+	"io"
 	"strings"
 	"time"
 
@@ -13,7 +15,7 @@ type HandlerHelloWorldFactory struct {
 
 // InitHandler creates a new HandlerHelloWorld and returns it.
 // InitHandler is a function of transport.HandlerFactory.
-func (h HandlerHelloWorldFactory) InitHandler(l transport.LinkWriter, n *transport.Node) transport.Handler {
+func (h HandlerHelloWorldFactory) InitHandler(n *transport.Node, l transport.LinkWriter) transport.Handler {
 
 	log.Debugf("InitHandler")
 	handler := &HandlerHelloWorld{
@@ -30,10 +32,20 @@ type HandlerHelloWorld struct {
 }
 
 // OnRead implements OnRead method from transport.Handler interface
-func (h *HandlerHelloWorld) OnRead(msg []byte) {
+func (h *HandlerHelloWorld) OnRead(rd io.Reader) error {
 
-	msgStr := strings.TrimSpace(string(msg))
-	log.WithField("ID=", h.link.ID()).Debugf("OnRead msg=%s. Resending it.", msgStr)
+	var msg []byte
+	var err error
+	for {
+		msg, err = bufio.NewReader(rd).ReadBytes('\n')
+		if err != nil {
+			log.Errorf("Error read: %s", err.Error())
+			return err
+		}
+		msgStr := strings.TrimSpace(string(msg))
+		//log.Debugf("OnRead msg=%s. Resending it.", msgStr)
+		log.WithField("ID=", h.link.ID()).Debugf("OnRead msg=%s. Resending it.", msgStr)
+	}
 }
 
 // OnConnect implements OnConnect method from transport.Handler interface
@@ -53,10 +65,9 @@ func (h *HandlerHelloWorld) OnConnect() error {
 func (h *HandlerHelloWorld) OnWrite(msg []byte) {
 
 	log.WithField("ID=", h.link.ID()).Debugf("OnWrite")
-	err := h.link.Write(msg)
+	_, err := h.link.Write(msg)
 	if err != nil {
 		log.WithField("ID=", h.link.ID()).Errorf("Error read: %s", err.Error())
-
 	}
 }
 

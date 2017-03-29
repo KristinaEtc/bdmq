@@ -18,11 +18,12 @@ var r1 = rand.New(s1)
 // in order to eliminate the dependency on the type LinkActive in other packages
 // where Handlers initialized.
 type LinkWriter interface {
-	Mode() int          // returns Mode of a link; must be server of client
-	Write([]byte) error // method for writing to Link
-	Close()             // close Link
-	ID() string         // returns Link ID
-	Conn() net.Conn     // returns conn of Link
+	Mode() int                 // returns Mode of a link; must be server of client
+	Close()                    // close Link
+	ID() string                // returns Link ID
+	Conn() net.Conn            // returns conn of Link
+	Write([]byte) (int, error) // implementation of io.write interface
+
 }
 
 // linkCloser is an interface which used for gr0ss way to implement graceful closing of ActiveLinks

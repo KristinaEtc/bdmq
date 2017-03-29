@@ -20,14 +20,12 @@ type HandlerStompFactory struct {
 
 // InitHandler creates a new HandlerStomp and returns it.
 // InitHandler is a function of transport.HandlerFactory.
-func (h HandlerStompFactory) InitHandler(l transport.LinkWriter, n *transport.Node, rd io.Reader, wd io.Writer) transport.Handler {
+func (h HandlerStompFactory) InitHandler(n *transport.Node, l transport.LinkWriter) transport.Handler {
 
 	log.Debugf("HandlerStompFactory.InitHandler() enter")
 	handler := &HandlerStomp{
-		link: l,
-		//node:   n,
-		Writer: frame.NewWriter(wd),
-		Reader: frame.NewReader(rd),
+		link:   l,
+		Writer: frame.NewWriter(l),
 		log:    slf.WithContext("stompHandler").WithFields(slf.Fields{"ID": l.ID()}),
 		//topicChs: make(map[string]*chan transport.Frame),
 	}
@@ -38,7 +36,6 @@ func (h HandlerStompFactory) InitHandler(l transport.LinkWriter, n *transport.No
 type HandlerStomp struct {
 	link   transport.LinkWriter
 	node   NodeStomp
-	Reader *frame.Reader
 	Writer *frame.Writer
 	log    slf.Logger
 	//	topicChs map[string]*chan transport.Frame
@@ -63,12 +60,13 @@ func processFrame(topic string, frame *frame.Frame) error {
 }
 
 // OnRead implements OnRead method from transport.Heandler interface
-func (h *HandlerStomp) OnRead() error {
+func (h *HandlerStomp) OnRead(rd io.Reader) error {
 
 	//h.log.Infof("message= %v", string(msg))
+	reader := frame.NewReader(rd)
 
 	for {
-		fr, err := h.Reader.Read()
+		fr, err := reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				h.log.Errorf("connection closed: eof")

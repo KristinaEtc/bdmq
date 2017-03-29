@@ -16,8 +16,8 @@ var handlers handlerFactories = make(map[string]HandlerFactory)
 // Handler is an interface for handlers
 // ...
 type Handler interface {
-	OnRead() error    // read method
-	OnConnect() error // connect method
+	OnRead(io.Reader) error // read method
+	OnConnect() error       // connect method
 	//OnWrite([]byte)   // write method
 	OnDisconnect() // disconnect method
 	//Subscribe(string) (*chan Frame, error)
@@ -26,7 +26,7 @@ type Handler interface {
 // HandlerFactory is an interface for creating new Handler
 type HandlerFactory interface {
 	//InitHandler(LinkWriter, *Node) Handler // creates new Handler
-	InitHandler(LinkWriter, *Node, io.Reader, io.Writer) Handler
+	InitHandler(*Node, LinkWriter) Handler
 }
 
 // RegisterHandlerFactory added HandlerFactory hFactory with name handlerName.
