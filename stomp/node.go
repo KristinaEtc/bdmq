@@ -36,7 +36,7 @@ func NewNode() *NodeStomp {
 // SendFrame sends a frame to ActiveLink with certain ID.
 func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 
-	log.WithField("topic", topic).Debugf("funcSendFrame()")
+	//log.WithField("topic", topic).Debugf("funcSendFrame()")
 
 	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},

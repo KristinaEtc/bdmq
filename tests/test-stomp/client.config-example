@@ -2,7 +2,7 @@
   "MachineID": "kristina-note-test",
   "Links": [
     {
-        "LinkID": "ID1",
+        "LinkID": "ID3",
         "Address": "localhost:7777",
         "Mode": "client",
         "Handler": "stomp",
@@ -29,6 +29,6 @@
       }
     ],
     "CallerInfo": true,
-    "Logpath": "logs/"
+    "Logpath": "logs/client"
   }
 }

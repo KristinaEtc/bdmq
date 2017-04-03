@@ -77,7 +77,6 @@ func (n *Node) InitLinkDesc(lDescJSON []LinkDescFromJSON) error {
 			linkID:  l.LinkID,
 			mode:    l.Mode,
 			handler: l.Handler,
-			topics:  l.Topic,
 		}
 		n.LinkDescs[l.LinkID] = lDesc
 	}

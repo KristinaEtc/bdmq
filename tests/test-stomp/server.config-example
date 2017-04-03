@@ -1,14 +1,23 @@
 {
   "MachineID": "kristina-note-test",
+  "FileWithFrames": "frames.txt",
+  "ShowFrames": true,
   "Links": [
    {
-        "LinkID": "ID2",
-        "Address": "127.0.0.1:7777",
+        "LinkID": "ID1",
+        "Address": "0.0.0.0:7777",
         "Mode": "server",
         "Handler": "stomp",
         "BufSize": 1024,
-        "FrameProcessor": "stomp",
-        "Topic": "topic-test"
+        "FrameProcessor": "stomp"
+    },
+    {
+    "LinkID": "ID2",
+    "Address": "localhost:7777",
+    "Mode": "client",
+    "Handler": "stomp",
+    "BufSize": 1024,
+    "FrameProcessor": "stomp"
     }
   ],
   "Logs": {
@@ -30,6 +39,6 @@
       }
     ],
     "CallerInfo": true,
-    "Logpath": "logs/"
+    "Logpath": "logs/server"
   }
 }

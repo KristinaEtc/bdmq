@@ -9,7 +9,6 @@ type LinkDescFromJSON struct {
 	Mode    string
 	Handler string
 	BufSize int
-	Topic   []string
 }
 
 /*

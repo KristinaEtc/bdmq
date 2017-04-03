@@ -94,7 +94,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 // of method of interface LinkWriter.
 func (lA *LinkActive) Write(msg []byte) (int, error) {
 
-	lA.log.Debug("LinkActive Write() enter")
+	//	lA.log.Debug("LinkActive Write() enter")
 	n, err := lA.conn.Write(msg)
 	return n, err
 }

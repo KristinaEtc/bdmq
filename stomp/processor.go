@@ -37,7 +37,7 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 
 				lActive := s.Node.LinkActives[subcriptionData.linkActiveID]
 			*/
-			log.Debug("Now I'm sending a frame to the 1st handler")
+			//	log.Debug("Now I'm sending a frame to the 1st handler")
 			for _, h := range s.Node.handlers {
 				h.OnWrite(cmdSendFrame.frame)
 				//break

@@ -56,7 +56,7 @@ func processFrame(topic string, frame *frame.Frame) error {
 
 // receiveFrame used for recieving a frame to stompProcessor.
 func (h *HandlerStomp) receiveFrame(linkActiveID string, topic string, frame frame.Frame) {
-	h.log.Debugf("func ReceiveFrame()")
+	//h.log.Debugf("func ReceiveFrame()")
 
 	h.node.CommandCh <- &CommandReceiveFrameStomp{
 		transport.NodeCommand{Cmd: stompReceiveFrameCommand},
@@ -130,9 +130,9 @@ func (h *HandlerStomp) OnConnect() error {
 // OnWrite implements OnWrite method from transport.Heandler interface
 func (h *HandlerStomp) OnWrite(frame frame.Frame) {
 
-	h.log.Debug("OnWrite")
+	//h.log.Debug("OnWrite")
 	h.Writer.Write(&frame)
-	h.log.Debug("OnWrite exit")
+	//h.log.Debug("OnWrite exit")
 	return
 }
 
