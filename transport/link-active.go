@@ -46,10 +46,10 @@ func (lA *LinkActive) Close() {
 	}
 }
 
-// SendMessageActive sends command to AcliveLink to send message msg
-func (lA *LinkActive) SendMessageActive(msg []byte) {
+// SendStringActive sends command to AcliveLink to send string msg
+func (lA *LinkActive) SendStringActive(msg []byte) {
 	lA.commandCh <- cmdActiveLink{
-		cmd: sendMessageActive,
+		cmd: sendStringActive,
 		msg: msg,
 	}
 }
@@ -79,7 +79,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 					return
 					//lA.linkControl.NotifyError(errors.New("Error reading active "))
 				}*/
-				if command.cmd == sendMessageActive {
+				if command.cmd == sendStringActive {
 					lA.Write(command.msg)
 				}
 				if command.cmd == registerTopicActive {

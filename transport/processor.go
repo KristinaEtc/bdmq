@@ -123,9 +123,9 @@ func (d *DefaultProcessor) ProcessCommand(cmd Command) (known bool, isExiting bo
 			}
 			return true, false
 		}
-	case sendMessageNode:
+	case sendStringNode:
 		{
-			cmdMessage, ok := cmd.(*NodeCommandSendMessage)
+			cmdMessage, ok := cmd.(*NodeCommandSendString)
 			if !ok {
 				log.Errorf("Invalid command type %v", cmd)
 				return false, true
@@ -134,7 +134,7 @@ func (d *DefaultProcessor) ProcessCommand(cmd Command) (known bool, isExiting bo
 			if len(n.LinkActives) > 0 {
 				for _, lA := range n.LinkActives {
 					log.Debug("for testing i'm choosing all active links")
-					lA.SendMessageActive([]byte(cmdMessage.msg))
+					lA.SendStringActive([]byte(cmdMessage.msg))
 					//return false
 				}
 			}
@@ -162,7 +162,7 @@ func (d *DefaultProcessor) CommandToString(c CommandID) string {
 	case 4:
 		return "stop"
 	case 5:
-		return "sendMessage"
+		return "sendString"
 	case 6:
 		return "registerTopic"
 	case 7:

@@ -5,6 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"fmt"
+
+	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
 )
 
@@ -45,8 +48,14 @@ func subscribeProcesser(signature string, n *stomp.NodeStomp) error {
 	topic, err := stringParam(signature)
 	if err != nil {
 		log.Errorf("Wrong [%s] parameter: %s", signature, err)
+		return err
 	}
-	n.Subscribe(topic)
+	_, err = n.Subscribe(topic)
+	if err != nil {
+		log.Errorf("Could not subscribe: %s", err.Error())
+		return err
+	}
+
 	return nil
 }
 
@@ -57,24 +66,110 @@ func unsubscribeProcesser(signature string, n *stomp.NodeStomp) error {
 }
 
 func sendMessageProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[params] sendMessage=[%v]", params)
+	log.Debugf("[command] sendMessageProcesser; signature=[%s]", signature)
+
+	params := strings.SplitN(signature, ",", 2)
+	for _, elem := range params {
+		log.Error(elem)
+	}
+
+	if len(params) != 2 {
+		log.Errorf("SendMessageProcesser:param=[%s]: must be 2 parametors", signature)
+		return fmt.Errorf("SendMessageProcesser:param=[%s]: must be 2 parametors", signature)
+	}
+
+	var message, linkActiveID string
+	var err error
+	message, err = stringParam(params[0])
+	if err != nil {
+		log.Errorf("SendMessageProcesser:param=[%s]: %s", message, err.Error())
+		return err
+	}
+	linkActiveID, err = stringParam(params[1])
+	if err != nil {
+		log.Errorf("SendMessageProcesser:param=[%s]: %s", message, err.Error())
+		return err
+	}
+	n.SendString(linkActiveID, message)
+	log.Warnf("message [%s] was sent from [%s]", message, linkActiveID)
 	return nil
+
 }
 
 func sendFrameProcesser(signature string, n *stomp.NodeStomp) error {
+
+	params := strings.Split(signature, ",")
+	for _, elem := range params {
+		log.Error(elem)
+	}
+
+	log.Debugf("[params] sendFrame=[%v]", params)
+
+	// TODO: 2 OR MORE HEADERS
+	var topic, frameType, header string
+	var err error
+	topic, err = stringParam(params[0])
+	if err != nil {
+		log.Errorf("SendFrameProcesser: param=[%s]: %s", params[0], err.Error())
+		return err
+	}
+
+	frameType, err = stringParam(params[1])
+	if err != nil {
+		log.Errorf("SendFrameProcesser: param=[%s]: %s", params[1], err.Error())
+		return err
+	}
+
+	header, err = stringParam(params[2])
+	if err != nil {
+		log.Errorf("SendFrameProcesser: param=[%s]: %s", params[2], err.Error())
+		return err
+	}
+
+	var fr *frame.Frame
+	var headers = make([]string, 0)
+
+	for i := 3; i < len(params); i++ {
+		h, err := stringParam(params[3])
+		if err != nil {
+			log.Errorf("SendFrameProcesser: param=[%s]: %s", params[i], err.Error())
+			return err
+		}
+		log.Debugf("header=%s", h)
+		headers = append(headers, h)
+	}
+
 	/*
-		params := strings.Split(signature, ",")
-		for i, p := range params {
-			params[i] = stringParam(p)
-		}
-		log.Debugf("[params] sendFrame=[%v]", params)
+		frame := frame.New(
+			frameType,
+			headers,
+		)
+	*/
 
-		if len(params) < 4 {
-			return errors.New("Not enought parameters.")
-		}
+	log.Debugf("%v, %v", header, fr)
 
-		numOfFrames, err := strconv.Atoi(params[3])
+	frame := frame.New(
+		frameType,
+		"TEST:NOT IMPLEMENTED",
+	)
+
+	// TODO:add return error to SendFrame()
+	n.SendFrame(topic, *frame)
+
+	return nil
+}
+
+func sendMessageMultiProcesser(signature string, n *stomp.NodeStomp) error {
+	params := strings.Split(signature, ",")
+	log.Debugf("[params] sendMessageMulti=[%v]", params)
+	return nil
+}
+
+func sendFrameMultiProcesser(signature string, n *stomp.NodeStomp) error {
+
+	/*
+
+		frameType, err := strconv.Atoi(params[3])
 		if err != nil {
 			return errors.New("Wrong number parameter.")
 		}
@@ -91,19 +186,8 @@ func sendFrameProcesser(signature string, n *stomp.NodeStomp) error {
 
 		}
 
-		// TODO:add return error to SendFrame()
-		n.SendFrame(params[0], *frame)
 	*/
-	return nil
-}
 
-func sendMessageMultiProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[params] sendMessageMulti=[%v]", params)
-	return nil
-}
-
-func sendFrameMultiProcesser(signature string, n *stomp.NodeStomp) error {
 	/*	params := strings.Split(signature, ",")
 		for i, p := range params {
 			params[i] = stringParam(p)

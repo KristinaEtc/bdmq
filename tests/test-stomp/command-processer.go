@@ -77,10 +77,8 @@ func process(n *stomp.NodeStomp) error {
 			log.Errorf("Parse command from file: %s; ignored", err.Error())
 			continue
 		}
-		log.Debugf("cmd=[%s], signature=[%s]", cmd, signature)
 		for command, function := range commands {
 			if strings.Compare(command, cmd) == 0 {
-				log.Debugf("Got it=[%s]", cmd)
 				cmdFound = true
 				function(signature, n)
 				break

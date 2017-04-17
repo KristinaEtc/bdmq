@@ -1,6 +1,8 @@
 package stomp
 
 import (
+	"errors"
+
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
 )
@@ -43,6 +45,16 @@ func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 		frame,
 		topic,
 	}
+}
+
+// GetChannel returns a channel connected with topic
+func (n *NodeStomp) GetChannel(topic string) (chan frame.Frame, error) {
+	var s Subscription
+	var ok bool
+	if s, ok = n.subscriptions[topic]; !ok {
+		return nil, errors.New("No subscription for this topic")
+	}
+	return s.ch, nil
 }
 
 //Subscribe sends a frame to subscribe activeLink with ID = ActiveLinkID with topic.

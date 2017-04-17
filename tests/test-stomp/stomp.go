@@ -117,7 +117,7 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	ch, err := n.Subscribe("test-topic")
+	_, err = n.Subscribe("test-topic")
 	if err != nil {
 		log.Errorf("Could not subscribe: %s", err.Error())
 		return
@@ -125,10 +125,10 @@ func main() {
 
 	time.Sleep(time.Second * 5)
 
-	//process(n)
+	process(n)
 
-	go read(ch)
-	write(n)
+	//go read(ch)
+	//write(n)
 
 	log.Infof("=============================================1=Frames received: %d", frameReceived)
 	frameReceived = 0

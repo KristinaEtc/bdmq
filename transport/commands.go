@@ -15,7 +15,7 @@ const (
 	registerActive
 	unregisterActive
 	stopNode
-	sendMessageNode
+	sendStringNode
 	registerTopic
 	unregisterTopic
 )
@@ -49,8 +49,8 @@ type NodeCommandActiveLink struct {
 	active *LinkActive
 }
 
-// NodeCommandSendMessage represents a command to Node to send a message
-type NodeCommandSendMessage struct {
+// NodeCommandSendString represents a command to Node to send a message
+type NodeCommandSendString struct {
 	NodeCommand
 	msg string
 }
@@ -66,7 +66,7 @@ type commandActiveLink int
 const (
 	quitLinkActive commandActiveLink = iota
 	errorReadingActive
-	sendMessageActive
+	sendStringActive
 	registerTopicActive
 )
 
@@ -77,7 +77,7 @@ func (c commandActiveLink) String() string {
 	case 1:
 		return "errorReadingActive"
 	case 2:
-		return "sendMessage"
+		return "sendStringActive"
 	case 3:
 		return "registerTopicActive"
 	default:
