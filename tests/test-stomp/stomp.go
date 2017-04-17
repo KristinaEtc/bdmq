@@ -3,7 +3,6 @@ package main
 import _ "github.com/KristinaEtc/slflog"
 
 import (
-	"errors"
 	"io"
 	"os"
 	"time"
@@ -52,10 +51,10 @@ func read(ch chan frame.Frame) {
 
 	for {
 		select {
-		case _ = <-ch:
-			//	if globalOpt.ShowFrames {
-			//	log.Infof("Received: %s", fr.Dump())
-			//	}
+		case fr := <-ch:
+			if globalOpt.ShowFrames {
+				log.Infof("Received: %s", fr.Dump())
+			}
 			frameReceived++
 		}
 	}
@@ -63,18 +62,16 @@ func read(ch chan frame.Frame) {
 
 func write(n *stomp.NodeStomp) error {
 
-	if globalOpt.FileWithFrames == "" {
-		log.Errorf("Wrong name of file with frames. Exit.")
-		return errors.New("Set a file with frames in command line's flag. Exit.")
-	}
 	fd, err := os.Open(globalOpt.FileWithFrames)
 	if err != nil {
-		log.Errorf("Error: %s", err.Error())
+		log.Errorf("File with frames=[%s]: %s", globalOpt.FileWithFrames, err.Error())
 		return err
 	}
 
 	defer func() {
-		fd.Close()
+		if err := fd.Close(); err != nil {
+			log.Errorf("File with frames=[%s]: %s", globalOpt.FileWithFrames, err.Error())
+		}
 	}()
 
 	reader := frame.NewReader(fd)
@@ -120,8 +117,7 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	_, err = n.Subscribe("test-topic")
-	//ch, err := n.Subscribe("test-topic")
+	ch, err := n.Subscribe("test-topic")
 	if err != nil {
 		log.Errorf("Could not subscribe: %s", err.Error())
 		return
@@ -129,11 +125,11 @@ func main() {
 
 	time.Sleep(time.Second * 5)
 
-	process(n)
+	//process(n)
 
-	//go read(ch)
-	//write(n)
-	//time.Sleep(time.Second * 5)
+	go read(ch)
+	write(n)
+
 	log.Infof("=============================================1=Frames received: %d", frameReceived)
 	frameReceived = 0
 	//write(n)
@@ -141,6 +137,6 @@ func main() {
 	//log.Errorf("Error write: %s", err.Error())
 	//n.Stop()
 	//}
-	time.Sleep(time.Second * 5)
+
 	log.Infof("=============================================2=Frames received: %d", frameReceived)
 }

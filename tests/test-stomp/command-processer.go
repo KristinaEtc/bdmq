@@ -11,23 +11,18 @@ import (
 
 type processorFunc func(string, *stomp.NodeStomp) error
 
-func stringParam(str string) string {
-	return strings.Trim(strings.TrimLeft(str, "\""), "\"")
-}
-
 func parseCommand(commandDeclaration string) (command, signature string, err error) {
 
-	splitted := strings.Split(commandDeclaration, "(")
+	splitted := strings.SplitN(commandDeclaration, "(", 2)
 	if len(splitted) < 1 {
 		return "", "", errors.New("Wrong command declaration [(]")
 	}
 	command = splitted[0]
-	splitted = strings.Split(commandDeclaration, ")")
-	if len(splitted) < 1 {
-		command = ""
+	if len(splitted) < 2 {
 		return "", "", errors.New("Wrong command declaration [)]")
 	}
-	signature = splitted[len(splitted)-1]
+	signature = splitted[1][:len(splitted[1])-1]
+
 	return
 }
 
@@ -66,6 +61,10 @@ func process(n *stomp.NodeStomp) error {
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
 		commandDeclaration = scanner.Text()
+		if err := scanner.Err(); err != nil {
+			log.Errorf("globalOpt.FileWithCommands: %s", err.Error())
+			return err
+		}
 		if len(commandDeclaration) == 0 {
 			log.Errorf("Empty line in File with commands=%s; ignored", globalOpt.FileWithCommands)
 			continue
@@ -86,11 +85,6 @@ func process(n *stomp.NodeStomp) error {
 				function(signature, n)
 				break
 			}
-		}
-
-		if err := scanner.Err(); err != nil {
-			log.Errorf("globalOpt.FileWithCommands: %s", err.Error())
-			return err
 		}
 
 		if cmdFound != true {

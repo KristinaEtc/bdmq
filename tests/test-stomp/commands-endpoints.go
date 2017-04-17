@@ -8,6 +8,22 @@ import (
 	"github.com/KristinaEtc/bdmq/stomp"
 )
 
+func stringParam(str string) (string, error) {
+	if strings.Compare("\"", str[len(str)-1:])+strings.Compare("\"", str[:1]) == 0 {
+		strWithoutFirstQuot := str[1:]
+		str = strWithoutFirstQuot[:len(strWithoutFirstQuot)-1]
+	}
+	return str, nil
+}
+
+func boolParam(str string) (bool, error) {
+	b, err := strconv.ParseBool(str)
+	if err != nil {
+		return false, err
+	}
+	return b, nil
+}
+
 func dumpProcesser(signature string, n *stomp.NodeStomp) error {
 	log.Debugf("[command] dump=[%s]", signature)
 	return nil
@@ -26,7 +42,11 @@ func sleepProcesser(signature string, n *stomp.NodeStomp) error {
 
 func subscribeProcesser(signature string, n *stomp.NodeStomp) error {
 	log.Debugf("[command] subscribe=[%s]", signature)
-	n.Subscribe(stringParam(signature))
+	topic, err := stringParam(signature)
+	if err != nil {
+		log.Errorf("Wrong [%s] parameter: %s", signature, err)
+	}
+	n.Subscribe(topic)
 	return nil
 }
 
