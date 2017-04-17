@@ -1,13 +1,10 @@
-tests/programs/*/logs/
-tests/programs/*/*/logs/
-tests/programs/*/*.config
-tests/programs/*/*/*.config
+tests/*/logs/
+tests/*/*.config
+tests/*/*.cmd
 
-tests/programs/test-stomp/test-stomp.config
+tests/*/server
+tests/*/client
 
-tests/programs/test-stomp/separate/server
-tests/programs/test-stomp/separate/client
-
-tests/programs/test-transport/test-transport
-tests/programs/test-stomp/test-stomp
+tests/test-transport/test-transport
+tests/test-stomp/test-stomp
 

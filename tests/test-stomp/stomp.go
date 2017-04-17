@@ -22,16 +22,18 @@ var frameReceived int
 
 // Global used for all configs.
 type Global struct {
-	MachineID      string
-	Links          []transport.LinkDescFromJSON
-	FileWithFrames string
-	ShowFrames     bool
+	MachineID        string
+	Links            []transport.LinkDescFromJSON
+	FileWithFrames   string
+	FileWithCommands string
+	ShowFrames       bool
 }
 
 var globalOpt = Global{
-	MachineID:      "kristina-note-test",
-	ShowFrames:     true,
-	FileWithFrames: "",
+	MachineID:        "test",
+	ShowFrames:       true,
+	FileWithFrames:   "",
+	FileWithCommands: "commands.cmd",
 	Links: []transport.LinkDescFromJSON{
 		transport.LinkDescFromJSON{
 			LinkID:  "ID1",
@@ -100,7 +102,6 @@ func write(n *stomp.NodeStomp) error {
 func main() {
 
 	config.ReadGlobalConfig(&globalOpt, "stomp.go")
-	log.Infof("FileWithFrames=%s", globalOpt.FileWithFrames)
 	log.Debugf("config=%+v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("stomp", stomp.HandlerStompFactory{})
@@ -119,7 +120,8 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	ch, err := n.Subscribe("test-topic")
+	_, err = n.Subscribe("test-topic")
+	//ch, err := n.Subscribe("test-topic")
 	if err != nil {
 		log.Errorf("Could not subscribe: %s", err.Error())
 		return
@@ -127,12 +129,14 @@ func main() {
 
 	time.Sleep(time.Second * 5)
 
-	go read(ch)
-	write(n)
-	time.Sleep(time.Second * 5)
+	process(n)
+
+	//go read(ch)
+	//write(n)
+	//time.Sleep(time.Second * 5)
 	log.Infof("=============================================1=Frames received: %d", frameReceived)
 	frameReceived = 0
-	write(n)
+	//write(n)
 	//if err != nil {
 	//log.Errorf("Error write: %s", err.Error())
 	//n.Stop()

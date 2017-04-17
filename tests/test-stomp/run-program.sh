@@ -1,3 +1,3 @@
-go build stomp.go && \
-        ./stomp --Verbose --VVerbose --FileWithFrames="frames.txt" --ShowFrames=true
+go build && \
+        ./test-stomp --Verbose --VVerbose --ConfigPath=server.config --ShowFrames=true
 

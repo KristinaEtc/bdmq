@@ -1,6 +1,7 @@
 {
   "MachineID": "kristina-note-test",
   "FileWithFrames": "frames.txt",
+  "FileWithCommands: "commands1.cmd",
   "ShowFrames": true,
   "Links": [
    {
