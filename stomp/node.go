@@ -1,8 +1,6 @@
 package stomp
 
 import (
-	"errors"
-
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
 )
@@ -38,7 +36,8 @@ func NewNode() *NodeStomp {
 // SendFrame sends a frame to ActiveLink with certain ID.
 func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 
-	//log.WithField("topic", topic).Debugf("funcSendFrame()")
+	//log.WithField("topic", topic).Debugf("SendFrame()")
+	log.Infof("SendFrame")
 
 	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},
@@ -47,6 +46,7 @@ func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 	}
 }
 
+/*
 // GetChannel returns a channel connected with topic
 func (n *NodeStomp) GetChannel(topic string) (chan frame.Frame, error) {
 	var s Subscription
@@ -56,6 +56,7 @@ func (n *NodeStomp) GetChannel(topic string) (chan frame.Frame, error) {
 	}
 	return s.ch, nil
 }
+*/
 
 //Subscribe sends a frame to subscribe activeLink with ID = ActiveLinkID with topic.
 func (n *NodeStomp) Subscribe(topic string) (chan frame.Frame, error) {

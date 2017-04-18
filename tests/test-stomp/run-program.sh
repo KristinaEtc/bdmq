@@ -1,3 +1,3 @@
-go build && \
-        ./test-stomp --Verbose --VVerbose --ConfigPath=server.config --ShowFrames=true
+go build stomp.go command-processer.go commands-endpoints.go && \
+        ./stomp --ConfigPath=server.config --ShowFrames=true
 

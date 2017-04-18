@@ -11,7 +11,6 @@ import (
 	"github.com/KristinaEtc/bdmq/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
-
 	"github.com/ventu-io/slf"
 )
 
@@ -42,22 +41,6 @@ var globalOpt = Global{
 			BufSize: 1024,
 		},
 	},
-}
-
-func read(ch chan frame.Frame) {
-	//	defer func() {
-	//		wg.Done()
-	//	}()
-
-	for {
-		select {
-		case fr := <-ch:
-			if globalOpt.ShowFrames {
-				log.Infof("Received: %s", fr.Dump())
-			}
-			frameReceived++
-		}
-	}
 }
 
 func write(n *stomp.NodeStomp) error {
@@ -117,26 +100,28 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	_, err = n.Subscribe("test-topic")
-	if err != nil {
-		log.Errorf("Could not subscribe: %s", err.Error())
-		return
-	}
+	defer n.Stop()
 
-	time.Sleep(time.Second * 5)
+	/*
+		ch, err := n.Subscribe("test-topic")
+		if err != nil {
+			log.Errorf("Could not subscribe: %s", err.Error())
+			return
+		}
+
+		time.Sleep(time.Second * 5)
+
+
+		go read(ch)
+		write(n)
+	*/
 
 	process(n)
 
-	//go read(ch)
-	//write(n)
-
-	log.Infof("=============================================1=Frames received: %d", frameReceived)
+	log.Infof("=============================================1=Frames received: %d\n", frameReceived)
 	frameReceived = 0
-	//write(n)
-	//if err != nil {
-	//log.Errorf("Error write: %s", err.Error())
-	//n.Stop()
-	//}
 
-	log.Infof("=============================================2=Frames received: %d", frameReceived)
+	time.Sleep(time.Second * 5)
+
+	log.Infof("=============================================2=Frames received: %d\n", frameReceived)
 }

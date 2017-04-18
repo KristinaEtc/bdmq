@@ -55,14 +55,13 @@ func processFrame(topic string, frame *frame.Frame) error {
 }
 
 // receiveFrame used for recieving a frame to stompProcessor.
-func (h *HandlerStomp) receiveFrame(linkActiveID string, topic string, frame frame.Frame) {
+func (h *HandlerStomp) receiveFrame(linkActiveID string, frame frame.Frame) {
 	//h.log.Debugf("func ReceiveFrame()")
 
 	h.node.CommandCh <- &CommandReceiveFrameStomp{
 		transport.NodeCommand{Cmd: stompReceiveFrameCommand},
 		frame,
 		linkActiveID,
-		topic,
 	}
 }
 
@@ -88,7 +87,7 @@ func (h *HandlerStomp) OnRead(rd io.Reader) error {
 		}
 
 		//	h.log.Infof("message= %s", fr.Dump())
-		h.receiveFrame(h.link.ID(), "test-topic", *fr)
+		h.receiveFrame(h.link.ID(), *fr)
 	}
 }
 

@@ -40,6 +40,6 @@
       }
     ],
     "CallerInfo": true,
-    "Logpath": "logs/server"
+    "Logpath": "logs/server/"
   }
 }

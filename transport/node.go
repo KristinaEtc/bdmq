@@ -178,10 +178,10 @@ func (n *Node) UnregisterTopic(lA *LinkActive, topic string) {
 	}
 }
 
-// SendString sends a command no Node to send message msg to ActiveLink with ID activeLinkID
-func (n *Node) SendString(activeLinkID string, msg string) {
-	n.CommandCh <- &NodeCommandSendString{
-		NodeCommand: NodeCommand{Cmd: sendStringNode},
+// SendMessage sends a command no Node to send message msg to ActiveLink with ID activeLinkID
+func (n *Node) SendMessage(activeLinkID string, msg string) {
+	n.CommandCh <- &NodeCommandSendMessage{
+		NodeCommand: NodeCommand{Cmd: sendMessageNode},
 		msg:         msg,
 	}
 }

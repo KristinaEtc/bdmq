@@ -58,12 +58,9 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 			// getting a topic from hiddr and sending to channels which subscribed for them;
 			// now not implemented
 
-			subData, ok := s.Node.subscriptions[cmdReceiveFrame.topic]
-			if !ok {
-				log.Warnf("Got message for topic=[%s]; nobody subscribed for it.", cmdReceiveFrame.topic)
-				return true, false
+			for _, subData := range s.Node.subscriptions {
+				subData.ch <- cmdReceiveFrame.frame
 			}
-			subData.ch <- cmdReceiveFrame.frame
 
 			return true, false
 		}
@@ -76,7 +73,7 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 				return false, true
 			}
 
-			log.Infof("topic=%v", cmdTopic.topic)
+			//log.Infof("topic=%v", cmdTopic.topic)
 
 			_, ok = s.Node.subscriptions[cmdTopic.topic]
 			if !ok {

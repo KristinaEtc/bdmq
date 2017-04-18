@@ -32,6 +32,6 @@
       }
     ],
     "CallerInfo": true,
-    "Logpath": "logs/client"
+    "Logpath": "logs/client/"
   }
 }

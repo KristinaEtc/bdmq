@@ -17,7 +17,6 @@ type CommandReceiveFrameStomp struct {
 	transport.NodeCommand
 	frame        frame.Frame
 	linkActiveID string
-	topic        string
 }
 
 // CommandRegisterHandlerStomp is a struct for StompNode processor for registration a new handler

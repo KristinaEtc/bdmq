@@ -3,7 +3,12 @@ package frame
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/ventu-io/slf"
 )
+
+var pwdCurr = "frame"
+var log = slf.WithContext(pwdCurr)
 
 /*
 
@@ -96,9 +101,17 @@ type Frame struct {
 // the header name, and the odd indexes are the assocated header values.
 func New(command string, headers ...string) *Frame {
 	f := &Frame{Command: command, Header: &Header{}}
-	for index := 0; index < len(headers); index += 2 {
+
+	var len = len(headers)
+	if len%2 != 0 {
+		log.Errorf("Odd number of headers: set [key, value] headers; last with be ignored")
+		len--
+	}
+
+	for index := 0; index < len; index += 2 {
 		f.Header.Add(headers[index], headers[index+1])
 	}
+
 	return f
 }
 

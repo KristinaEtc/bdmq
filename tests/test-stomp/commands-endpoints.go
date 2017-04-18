@@ -1,22 +1,25 @@
 package main
 
 import (
+	"errors"
 	"strconv"
 	"strings"
 	"time"
 
 	"fmt"
 
+	"reflect"
+
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
 )
 
-func stringParam(str string) (string, error) {
+func stringParam(str string) string {
 	if strings.Compare("\"", str[len(str)-1:])+strings.Compare("\"", str[:1]) == 0 {
 		strWithoutFirstQuot := str[1:]
 		str = strWithoutFirstQuot[:len(strWithoutFirstQuot)-1]
 	}
-	return str, nil
+	return str
 }
 
 func boolParam(str string) (bool, error) {
@@ -33,7 +36,7 @@ func dumpProcesser(signature string, n *stomp.NodeStomp) error {
 }
 
 func sleepProcesser(signature string, n *stomp.NodeStomp) error {
-	log.Debugf("[command] sleep=[%s]", signature)
+	log.Infof("[command] sleep=[%s]", signature)
 
 	sec, err := strconv.Atoi(signature)
 	if err != nil {
@@ -43,18 +46,47 @@ func sleepProcesser(signature string, n *stomp.NodeStomp) error {
 	return nil
 }
 
+func read(ch chan frame.Frame, prescriptiveFrame *frame.Frame) error {
+
+	timeout := time.NewTicker(time.Second * 7)
+
+	log.Debug("read")
+
+	for {
+		select {
+		case fr := <-ch:
+
+			frameReceived++
+			if globalOpt.ShowFrames {
+				log.Infof("Received: %s", fr.Dump())
+			}
+			if reflect.DeepEqual(fr, prescriptiveFrame) != true {
+				log.Debugf("Frames not equal: \n%+v\n%+v\n", *prescriptiveFrame, fr)
+				log.Debugf("Frames not equal: \n%+v\n%+v\n", *prescriptiveFrame.Header, fr.Header)
+				return errors.New("Frames not equal")
+			}
+			log.Debug("Right frame")
+			return nil
+
+		case _ = <-timeout.C:
+			return errors.New("timeout")
+		}
+	}
+}
+
 func subscribeProcesser(signature string, n *stomp.NodeStomp) error {
 	log.Debugf("[command] subscribe=[%s]", signature)
-	topic, err := stringParam(signature)
-	if err != nil {
-		log.Errorf("Wrong [%s] parameter: %s", signature, err)
-		return err
-	}
-	_, err = n.Subscribe(topic)
+
+	topic := stringParam(signature)
+
+	_, err := n.Subscribe(topic)
 	if err != nil {
 		log.Errorf("Could not subscribe: %s", err.Error())
 		return err
 	}
+
+	//go read(ch)
+	log.Infof("Subscribed to [%s] topic", topic)
 
 	return nil
 }
@@ -66,12 +98,10 @@ func unsubscribeProcesser(signature string, n *stomp.NodeStomp) error {
 }
 
 func sendMessageProcesser(signature string, n *stomp.NodeStomp) error {
+
 	log.Debugf("[command] sendMessageProcesser; signature=[%s]", signature)
 
 	params := strings.SplitN(signature, ",", 2)
-	for _, elem := range params {
-		log.Error(elem)
-	}
 
 	if len(params) != 2 {
 		log.Errorf("SendMessageProcesser:param=[%s]: must be 2 parametors", signature)
@@ -79,19 +109,11 @@ func sendMessageProcesser(signature string, n *stomp.NodeStomp) error {
 	}
 
 	var message, linkActiveID string
-	var err error
-	message, err = stringParam(params[0])
-	if err != nil {
-		log.Errorf("SendMessageProcesser:param=[%s]: %s", message, err.Error())
-		return err
-	}
-	linkActiveID, err = stringParam(params[1])
-	if err != nil {
-		log.Errorf("SendMessageProcesser:param=[%s]: %s", message, err.Error())
-		return err
-	}
-	n.SendString(linkActiveID, message)
-	log.Warnf("message [%s] was sent from [%s]", message, linkActiveID)
+	message = stringParam(params[0])
+	linkActiveID = stringParam(params[1])
+
+	n.SendMessage(linkActiveID, message)
+	log.Infof("Message [%s] was sent from [%s]", message, linkActiveID)
 	return nil
 
 }
@@ -99,69 +121,72 @@ func sendMessageProcesser(signature string, n *stomp.NodeStomp) error {
 func sendFrameProcesser(signature string, n *stomp.NodeStomp) error {
 
 	params := strings.Split(signature, ",")
-	for _, elem := range params {
-		log.Error(elem)
-	}
 
 	log.Debugf("[params] sendFrame=[%v]", params)
 
-	// TODO: 2 OR MORE HEADERS
-	var topic, frameType, header string
-	var err error
-	topic, err = stringParam(params[0])
-	if err != nil {
-		log.Errorf("SendFrameProcesser: param=[%s]: %s", params[0], err.Error())
-		return err
-	}
+	var topic, frameType string
 
-	frameType, err = stringParam(params[1])
-	if err != nil {
-		log.Errorf("SendFrameProcesser: param=[%s]: %s", params[1], err.Error())
-		return err
-	}
+	topic = stringParam(params[0])
+	frameType = stringParam(params[1])
 
-	header, err = stringParam(params[2])
-	if err != nil {
-		log.Errorf("SendFrameProcesser: param=[%s]: %s", params[2], err.Error())
-		return err
-	}
-
-	var fr *frame.Frame
 	var headers = make([]string, 0)
-
-	for i := 3; i < len(params); i++ {
-		h, err := stringParam(params[3])
-		if err != nil {
-			log.Errorf("SendFrameProcesser: param=[%s]: %s", params[i], err.Error())
-			return err
-		}
-		log.Debugf("header=%s", h)
+	for i := 2; i < len(params); i++ {
+		h := stringParam(params[i])
 		headers = append(headers, h)
 	}
 
-	/*
-		frame := frame.New(
-			frameType,
-			headers,
-		)
-	*/
-
-	log.Debugf("%v, %v", header, fr)
-
 	frame := frame.New(
 		frameType,
-		"TEST:NOT IMPLEMENTED",
+		"message", "test1",
 	)
 
-	// TODO:add return error to SendFrame()
-	n.SendFrame(topic, *frame)
+	//log.Debugf("%v", frame.Header)
 
+	n.SendFrame(topic, *frame)
+	log.Infof("Frame [%v] was sent from [%s]", frame, topic)
 	return nil
 }
 
 func sendMessageMultiProcesser(signature string, n *stomp.NodeStomp) error {
 	params := strings.Split(signature, ",")
 	log.Debugf("[params] sendMessageMulti=[%v]", params)
+	return nil
+}
+
+func receiveFrameProcesser(signature string, n *stomp.NodeStomp) error {
+
+	params := strings.Split(signature, ",")
+
+	log.Debugf("[params] receiveFrame=[%v]", params)
+
+	var topic, frameType string
+
+	topic = stringParam(params[0])
+	ch, err := n.Subscribe(topic)
+	if err != nil {
+		log.Errorf("topic=[%s]: %s", topic, err.Error())
+		return err
+	}
+
+	frameType = stringParam(params[1])
+
+	var headers = make([]string, 0)
+	for i := 2; i < len(params); i++ {
+		h := stringParam(params[i])
+		headers = append(headers, h)
+	}
+
+	frame := frame.New(
+		frameType,
+		"message", "test1",
+	)
+
+	log.Debugf("%v", frame.Header)
+
+	err = read(ch, frame)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

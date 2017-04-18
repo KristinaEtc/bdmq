@@ -33,6 +33,7 @@ var commands = map[string]processorFunc{
 	"sendFrame":        sendFrameProcesser,
 	"sendMessageMulti": sendMessageMultiProcesser,
 	"sendFrameMulti":   sendFrameMultiProcesser,
+	"receiveFrame":     receiveFrameProcesser,
 	"waitMessage":      waitMessageProcesser,
 	"waitFrame":        waitFrameProcesser,
 	"waitMessageMulti": waitMessageMultiProcesser,
@@ -42,6 +43,8 @@ var commands = map[string]processorFunc{
 }
 
 func process(n *stomp.NodeStomp) error {
+
+	// openning file with commands and reading from it
 
 	fd, err := os.Open(globalOpt.FileWithCommands)
 	if err != nil {
@@ -60,6 +63,9 @@ func process(n *stomp.NodeStomp) error {
 
 	scanner := bufio.NewScanner(fd)
 	for scanner.Scan() {
+
+		// deadind line by line, one line must contain only one command
+
 		commandDeclaration = scanner.Text()
 		if err := scanner.Err(); err != nil {
 			log.Errorf("globalOpt.FileWithCommands: %s", err.Error())
@@ -70,24 +76,29 @@ func process(n *stomp.NodeStomp) error {
 			continue
 		}
 
-		var cmdFound bool
+		// parse a command declaration
 
 		cmd, signature, err := parseCommand(commandDeclaration)
 		if err != nil {
 			log.Errorf("Parse command from file: %s; ignored", err.Error())
 			continue
 		}
-		for command, function := range commands {
-			if strings.Compare(command, cmd) == 0 {
-				cmdFound = true
-				function(signature, n)
-				break
-			}
+
+		// finding this command in known commands and run correspoding processer
+
+		var function processorFunc
+		var ok bool
+
+		if function, ok = commands[cmd]; !ok {
+			log.Errorf("Command [%s] from command file [%s] not found", cmd, globalOpt.FileWithCommands)
+			continue
+		}
+		err = function(signature, n)
+		if err != nil {
+			log.Errorf("%s", err.Error())
+			os.Exit(1)
 		}
 
-		if cmdFound != true {
-			log.Errorf("Command [%s] from command file [%s] not found", cmd, globalOpt.FileWithCommands)
-		}
 	}
 
 	return nil

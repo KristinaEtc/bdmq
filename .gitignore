@@ -6,5 +6,5 @@ tests/*/server
 tests/*/client
 
 tests/test-transport/test-transport
-tests/test-stomp/test-stomp
+tests/test-stomp/stomp
 
