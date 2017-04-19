@@ -70,7 +70,7 @@ func (lA *LinkActive) WaitCommand(conn net.Conn) {
 			{
 				lA.log.Debugf("Command=[%s/%v]", command.cmd.String(), command.cmd)
 				if command.cmd == quitLinkActive {
-					log.Warn("quitLinkActive")
+					log.Debug("quitLinkActive")
 					conn.Close()
 					return
 				}

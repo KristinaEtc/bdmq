@@ -255,7 +255,7 @@ func (n *Node) Stop() {
 	//TODO: wait with WaitGroup()
 	log.Debugf("Node.Stop: waiting active:%d control:%d", n.hasActiveLinks, n.hasLinks)
 	for n.hasLinks != 0 || n.hasActiveLinks != 0 {
-		time.Sleep(time.Second * time.Duration(1))
 		log.Warnf("Node.Stop: waiting active:%d control:%d", n.hasActiveLinks, n.hasLinks)
+		time.Sleep(time.Second * time.Duration(1))
 	}
 }

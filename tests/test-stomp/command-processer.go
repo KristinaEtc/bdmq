@@ -27,19 +27,13 @@ func parseCommand(commandDeclaration string) (command, signature string, err err
 }
 
 var commands = map[string]processorFunc{
-	"subscribe":        subscribeProcesser,
-	"unsubscribe":      unsubscribeProcesser,
-	"sendMessage":      sendMessageProcesser,
-	"sendFrame":        sendFrameProcesser,
-	"sendMessageMulti": sendMessageMultiProcesser,
-	"sendFrameMulti":   sendFrameMultiProcesser,
-	"receiveFrame":     receiveFrameProcesser,
-	"waitMessage":      waitMessageProcesser,
-	"waitFrame":        waitFrameProcesser,
-	"waitMessageMulti": waitMessageMultiProcesser,
-	"waitFrameMulti":   waitFrameMultiProcesser,
-	"sleep":            sleepProcesser,
-	"dump":             dumpProcesser,
+	"subscribe":    subscribeProcesser,
+	"unsubscribe":  unsubscribeProcesser,
+	"sendMessage":  sendMessageProcesser,
+	"sendFrame":    sendFrameProcesser,
+	"receiveFrame": receiveFrameProcesser,
+	"sleep":        sleepProcesser,
+	"dump":         dumpProcesser,
 }
 
 func process(n *stomp.NodeStomp) error {

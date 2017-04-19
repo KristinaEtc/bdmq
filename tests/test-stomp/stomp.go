@@ -118,10 +118,7 @@ func main() {
 
 	process(n)
 
-	log.Infof("=============================================1=Frames received: %d\n", frameReceived)
-	frameReceived = 0
+	log.Infof("Frames received: [%d]", frameReceived)
 
 	time.Sleep(time.Second * 5)
-
-	log.Infof("=============================================2=Frames received: %d\n", frameReceived)
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"runtime/debug"
 	"time"
 
 	"github.com/ventu-io/slf"
@@ -60,7 +59,7 @@ func (lC *LinkControl) sendCommand(cmd cmdContrlLink) {
 // Close sends command to close ControlLink
 func (lC *LinkControl) Close() {
 	lC.log.Debug("Close()")
-	debug.PrintStack()
+	//debug.PrintStack()
 	lC.sendCommand(cmdContrlLink{
 		cmd: quitControlLink,
 	})

@@ -2,13 +2,12 @@ package main
 
 import (
 	"errors"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
 
 	"fmt"
-
-	"reflect"
 
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
@@ -32,11 +31,12 @@ func boolParam(str string) (bool, error) {
 
 func dumpProcesser(signature string, n *stomp.NodeStomp) error {
 	log.Debugf("[command] dump=[%s]", signature)
+	debug.PrintStack()
 	return nil
 }
 
 func sleepProcesser(signature string, n *stomp.NodeStomp) error {
-	log.Infof("[command] sleep=[%s]", signature)
+	log.Debugf("[command] sleep=[%s]", signature)
 
 	sec, err := strconv.Atoi(signature)
 	if err != nil {
@@ -44,34 +44,6 @@ func sleepProcesser(signature string, n *stomp.NodeStomp) error {
 	}
 	time.Sleep(time.Second * time.Duration(sec))
 	return nil
-}
-
-func read(ch chan frame.Frame, prescriptiveFrame *frame.Frame) error {
-
-	timeout := time.NewTicker(time.Second * 7)
-
-	log.Debug("read")
-
-	for {
-		select {
-		case fr := <-ch:
-
-			frameReceived++
-			if globalOpt.ShowFrames {
-				log.Infof("Received: %s", fr.Dump())
-			}
-			if reflect.DeepEqual(fr, prescriptiveFrame) != true {
-				log.Debugf("Frames not equal: \n%+v\n%+v\n", *prescriptiveFrame, fr)
-				log.Debugf("Frames not equal: \n%+v\n%+v\n", *prescriptiveFrame.Header, fr.Header)
-				return errors.New("Frames not equal")
-			}
-			log.Debug("Right frame")
-			return nil
-
-		case _ = <-timeout.C:
-			return errors.New("timeout")
-		}
-	}
 }
 
 func subscribeProcesser(signature string, n *stomp.NodeStomp) error {
@@ -124,33 +96,69 @@ func sendFrameProcesser(signature string, n *stomp.NodeStomp) error {
 
 	log.Debugf("[params] sendFrame=[%v]", params)
 
+	if len(params) < 5 {
+		return errors.New("Must be at least 5 parameters")
+	}
+
 	var topic, frameType string
+
+	// parsing parameters from string signature
 
 	topic = stringParam(params[0])
 	frameType = stringParam(params[1])
+	numOfFrames, err := strconv.Atoi(params[2])
+	if err != nil {
+		return errors.New("Wrong [num of frames] parameter")
+	}
+
+	// a creating of headers of frames without last kye headers
+	// he will be added with his number
 
 	var headers = make([]string, 0)
-	for i := 2; i < len(params); i++ {
+	for i := 3; i <= len(params)-2; i++ {
 		h := stringParam(params[i])
 		headers = append(headers, h)
 	}
 
-	frame := frame.New(
-		frameType,
-		"message", "test1",
-	)
+	// sending frames with last header key with his serial number
 
-	//log.Debugf("%v", frame.Header)
-
-	n.SendFrame(topic, *frame)
-	log.Infof("Frame [%v] was sent from [%s]", frame, topic)
+	var fr *frame.Frame
+	h := stringParam(params[len(params)-1])
+	for i := 1; i <= numOfFrames; i++ {
+		headersFull := append(headers, h+strconv.Itoa(i))
+		fr = frame.New(
+			frameType,
+			headersFull...,
+		)
+		n.SendFrame(topic, *fr)
+	}
+	//	log.Infof("[%d] frame(s) was sent from [%s]", numOfFrames, topic)
 	return nil
 }
 
-func sendMessageMultiProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[params] sendMessageMulti=[%v]", params)
-	return nil
+func read(ch chan frame.Frame, prescriptiveFrame frame.Frame) error {
+
+	timeout := time.NewTicker(time.Second * 10)
+
+	log.Debug("read")
+	for {
+		select {
+		case fr := <-ch:
+
+			frameReceived++
+			if globalOpt.ShowFrames {
+				log.Infof("Received: %s", fr.Dump())
+			}
+			if frame.CompareFrames(prescriptiveFrame, fr) != true {
+				return errors.New("Frames not equal")
+			}
+			log.Debug("Right frame")
+			return nil
+
+		case _ = <-timeout.C:
+			return errors.New("timeout")
+		}
+	}
 }
 
 func receiveFrameProcesser(signature string, n *stomp.NodeStomp) error {
@@ -158,6 +166,11 @@ func receiveFrameProcesser(signature string, n *stomp.NodeStomp) error {
 	params := strings.Split(signature, ",")
 
 	log.Debugf("[params] receiveFrame=[%v]", params)
+
+	if len(params) < 5 {
+		log.Error("Wrong signature: must be at least 5 parameters")
+		return errors.New("Wrong signature: must be at least 5 parameters")
+	}
 
 	var topic, frameType string
 
@@ -169,86 +182,31 @@ func receiveFrameProcesser(signature string, n *stomp.NodeStomp) error {
 	}
 
 	frameType = stringParam(params[1])
+	numOfFrames, err := strconv.Atoi(params[2])
+	if err != nil {
+		return errors.New("Wrong [number of frames] parameter.")
+	}
 
 	var headers = make([]string, 0)
-	for i := 2; i < len(params); i++ {
+	for i := 3; i <= len(params)-2; i++ {
 		h := stringParam(params[i])
 		headers = append(headers, h)
 	}
 
-	frame := frame.New(
-		frameType,
-		"message", "test1",
-	)
+	var fr *frame.Frame
+	h := stringParam(params[len(params)-1])
 
-	log.Debugf("%v", frame.Header)
+	for i := 1; i <= numOfFrames; i++ {
+		headersFull := append(headers, h+strconv.Itoa(i))
+		fr = frame.New(
+			frameType,
+			headersFull...,
+		)
 
-	err = read(ch, frame)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func sendFrameMultiProcesser(signature string, n *stomp.NodeStomp) error {
-
-	/*
-
-		frameType, err := strconv.Atoi(params[3])
+		err := read(ch, *fr)
 		if err != nil {
-			return errors.New("Wrong number parameter.")
+			return err
 		}
-
-		var fr *frame.Frame
-		var headers = make([]string)
-
-		for i := 0; i < numOfFrames; i++ {
-			headers = append(headers, params[2])
-			log.Debug("headers=%v", headers)
-			fr = frame.New(
-				params[1],
-				headers)
-
-		}
-
-	*/
-
-	/*	params := strings.Split(signature, ",")
-		for i, p := range params {
-			params[i] = stringParam(p)
-		}
-		log.Debugf("[params] sendFrameMulti=[%v]", params)
-
-		frame := frame.New(
-			params[1],
-			params[2])
-
-		// TODO:add return error to SendFrame()
-		n.SendFrame(params[0], *frame)*/
-	return nil
-}
-
-func waitMessageProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[command] waitMessage=[%s]", params)
-	return nil
-}
-
-func waitFrameProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[command] waitFrame=[%s]", params)
-	return nil
-}
-
-func waitMessageMultiProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[command] waitMessageMulti=[%s]", params)
-	return nil
-}
-
-func waitFrameMultiProcesser(signature string, n *stomp.NodeStomp) error {
-	params := strings.Split(signature, ",")
-	log.Debugf("[command] waitFrameMulti=[%s]", params)
-
+	}
 	return nil
 }

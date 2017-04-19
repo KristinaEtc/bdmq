@@ -37,7 +37,7 @@ func NewNode() *NodeStomp {
 func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 
 	//log.WithField("topic", topic).Debugf("SendFrame()")
-	log.Infof("SendFrame")
+	log.Debug("func SendFrame")
 
 	n.CommandCh <- &CommandSendFrameStomp{
 		transport.NodeCommand{Cmd: stompSendFrameCommand},
@@ -45,18 +45,6 @@ func (n *NodeStomp) SendFrame(topic string, frame frame.Frame) {
 		topic,
 	}
 }
-
-/*
-// GetChannel returns a channel connected with topic
-func (n *NodeStomp) GetChannel(topic string) (chan frame.Frame, error) {
-	var s Subscription
-	var ok bool
-	if s, ok = n.subscriptions[topic]; !ok {
-		return nil, errors.New("No subscription for this topic")
-	}
-	return s.ch, nil
-}
-*/
 
 //Subscribe sends a frame to subscribe activeLink with ID = ActiveLinkID with topic.
 func (n *NodeStomp) Subscribe(topic string) (chan frame.Frame, error) {

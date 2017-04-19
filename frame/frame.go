@@ -3,89 +3,13 @@ package frame
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/ventu-io/slf"
 )
 
 var pwdCurr = "frame"
 var log = slf.WithContext(pwdCurr)
-
-/*
-
-// FactoryStomp is a factory for creating ProcessorStomp
-type FactoryStomp struct {
-}
-
-// ProcessorStomp is an interface for FrameProcessors
-type ProcessorStomp struct {
-	linkActive transport.LinkActive
-	Reader     *Reader
-	Writer     *Writer
-	log        slf.Logger
-	topicCh    *chan []byte
-}
-
-// InitFrameProcessor creates a new entity of ProcessorStomp and adds it to Node process slice
-func (f FactoryStomp) InitFrameProcessor(lActive transport.LinkActive, rd io.Reader, wd io.Writer) transport.FrameProcessor {
-
-	sFrameProcessor := &ProcessorStomp{
-		Writer:     NewWriter(wd),
-		Reader:     NewReader(rd),
-		log:        slf.WithContext("FrameProcessor").WithFields(slf.Fields{"ID": lActive.ID()}),
-		linkActive: lActive,
-		topicCh:    lActive.GetTopicCh(),
-	}
-
-	return sFrameProcessor
-}
-
-func (p *ProcessorStomp) write(data interface{}) {
-	p.log.Debug("stomp Processor Write")
-	p.Writer.Write(data.(*Frame))
-	return
-}
-
-// ToByte converts Frame (for different FrameProcessers different types) type to slices of bytes.
-// Implements ToByte method from transport.FrameProcessor interface.
-func (p *ProcessorStomp) ToByte(data interface{}) []byte {
-	p.log.Debug("ToByte()")
-	/*b, err := json.Marshal(group)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	f := data.(Frame)
-	p.Writer.Write(&f)
-	return []byte("data.(*Frame)")
-}
-
-func (p *ProcessorStomp) Read() error {
-	for {
-		ff, err := p.Reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				p.log.Errorf("connection closed: eof")
-			} else {
-				p.log.Errorf("read failed: %s", err.Error())
-			}
-			return err
-		}
-		if ff == nil {
-			p.log.Infof("heartbeat")
-			continue
-		}
-
-		topicName, ok := ff.Header[topic]
-		if !ok {
-			log.Warn("Got message without topic header; ignored")
-			continue
-		}
-		// TODO: parse by commas
-		p.topicChs[topicName] <- []byte(ff.Dump())
-
-	}
-}
-
-*/
 
 // A Frame represents a STOMP frame. A frame consists of a command
 // followed by a collection of header entries, and then an optional
@@ -103,11 +27,11 @@ func New(command string, headers ...string) *Frame {
 	f := &Frame{Command: command, Header: &Header{}}
 
 	var len = len(headers)
-	if len%2 != 0 {
-		log.Errorf("Odd number of headers: set [key, value] headers; last with be ignored")
-		len--
-	}
-
+	/*	if len%2 != 0 {
+			log.Errorf("Odd number of headers: set [key, value] headers; last with be ignored")
+			len--
+		}
+	*/
 	for index := 0; index < len; index += 2 {
 		f.Header.Add(headers[index], headers[index+1])
 	}
@@ -146,4 +70,27 @@ func (f *Frame) Dump() string {
 		//f.Header.Add(headers[index], headers[index+1])
 	}
 	return fmt.Sprintf("%s %s %s", f.Command, string(f.Body), buffer.String())
+}
+
+// CompareFrames compares all values if frames
+func CompareFrames(fr1, fr2 Frame) bool {
+
+	if strings.Compare(fr1.Command, fr2.Command) == 0 {
+		if bytes.Compare(fr1.Body, fr2.Body) == 0 {
+			lenH := len(fr1.Header.slice)
+			if lenH != len(fr2.Header.slice) {
+				log.Errorf("CompareFrames: lengh is not similar: %d/%d", lenH, len(fr2.Header.slice))
+				return false
+			}
+
+			for i := 0; i < lenH-1; i++ {
+				if fr2.Header.slice[i] != fr1.Header.slice[i] {
+					log.Errorf("CompareFrames: %s!=%s\n", fr1.Header.slice[i], fr2.Header.slice[i])
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return false
 }
