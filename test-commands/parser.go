@@ -78,7 +78,7 @@ func Process(exec CommandExecutor, fileWithCommands string) error {
 		err = exec.execute(cmd, signature)
 		if err != nil {
 			log.Errorf("Execute: %s [%s]", err.Error(), cmd)
-			//os.Exit(1)
+			os.Exit(1)
 		}
 	}
 

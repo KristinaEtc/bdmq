@@ -44,7 +44,7 @@ func stopProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 
 	return func(signature string) error {
 		log.Debugf("[command] stop=[%s]", signature)
-		n.Stop()
+		n.Stop(5)
 		return nil
 	}
 }
@@ -155,6 +155,7 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 				headersFull...,
 			)
 			n.SendFrame(topic, *fr)
+			time.Sleep(time.Millisecond)
 		}
 		//	log.Infof("[%d] frame(s) was sent from [%s]", numOfFrames, topic)
 
@@ -173,9 +174,9 @@ func read(ch chan frame.Frame, prescriptiveFrame frame.Frame, showInput bool) er
 		case fr := <-ch:
 
 			frameReceived++
-			if showInput {
-				log.Infof("Received: %s", fr.Dump())
-			}
+			//if showInput {
+			log.Infof("Received: %s", fr.Dump())
+			//}
 			if frame.CompareFrames(prescriptiveFrame, fr) != true {
 				return errors.New("Frames not equal")
 			}

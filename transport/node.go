@@ -244,9 +244,10 @@ func (n *Node) Run() error {
 }
 
 // Stop sends stop command for all Links and waites their completion
-func (n *Node) Stop() {
+func (n *Node) Stop(timeout int) (err error) {
 	log.Debug("Node.Stop()")
 
+	var currNum int
 	//todo: add checking if channel is exist
 	n.CommandCh <- &NodeCommand{
 		Cmd: stopNode,
@@ -257,5 +258,10 @@ func (n *Node) Stop() {
 	for n.hasLinks != 0 || n.hasActiveLinks != 0 {
 		log.Warnf("Node.Stop: waiting active:%d control:%d", n.hasActiveLinks, n.hasLinks)
 		time.Sleep(time.Second * time.Duration(1))
+		currNum++
+		if currNum == timeout {
+			return fmt.Errorf("Node.Stop: waiting active:%d control:%d", n.hasActiveLinks, n.hasLinks)
+		}
 	}
+	return nil
 }

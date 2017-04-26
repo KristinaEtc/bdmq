@@ -10,7 +10,6 @@ import (
 	"github.com/KristinaEtc/bdmq/stomp"
 	test "github.com/KristinaEtc/bdmq/test-commands"
 	test_stomp "github.com/KristinaEtc/bdmq/test-commands/stomp"
-	test_transport "github.com/KristinaEtc/bdmq/test-commands/transport"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
 	"github.com/ventu-io/slf"
@@ -25,6 +24,7 @@ type Global struct {
 	FileWithFrames   string
 	FileWithCommands string
 	ShowFrames       bool
+	StopTimeout      int
 }
 
 var globalOpt = Global{
@@ -32,6 +32,7 @@ var globalOpt = Global{
 	ShowFrames:       true,
 	FileWithFrames:   "",
 	FileWithCommands: "commands.cmd",
+	StopTimeout:      5,
 	Links: []transport.LinkDescFromJSON{
 		transport.LinkDescFromJSON{
 			LinkID:  "ID1",
@@ -100,8 +101,12 @@ func main() {
 		log.Errorf("Run error: %s", err.Error())
 	}
 
-	defer n.Stop()
-
+	defer func() {
+		err := n.Stop(globalOpt.StopTimeout)
+		if err != nil {
+			os.Exit(1)
+		}
+	}()
 	/*
 		ch, err := n.Subscribe("test-topic")
 		if err != nil {
@@ -117,7 +122,7 @@ func main() {
 	*/
 	cmdCtx := test.NewCommandsRegistry()
 
-	test_transport.Register(n.Node, &cmdCtx)
+	//	test_transport.Register(n.Node, &cmdCtx)
 	test_stomp.Register(n, &cmdCtx, true)
 
 	test.Process(&cmdCtx, globalOpt.FileWithCommands)
