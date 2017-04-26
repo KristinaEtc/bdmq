@@ -5,18 +5,18 @@ import _ "github.com/KristinaEtc/slflog"
 import (
 	"io"
 	"os"
-	"time"
 
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/stomp"
+	test "github.com/KristinaEtc/bdmq/test-commands"
+	test_stomp "github.com/KristinaEtc/bdmq/test-commands/stomp"
+	test_transport "github.com/KristinaEtc/bdmq/test-commands/transport"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
 	"github.com/ventu-io/slf"
 )
 
-var log = slf.WithContext("main")
-
-var frameReceived int
+var log = slf.WithContext("test-stomp")
 
 // Global used for all configs.
 type Global struct {
@@ -81,7 +81,7 @@ func write(n *stomp.NodeStomp) error {
 
 func main() {
 
-	config.ReadGlobalConfig(&globalOpt, "stomp.go")
+	config.ReadGlobalConfig(&globalOpt, "test-transport")
 	log.Debugf("config=%+v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("stomp", stomp.HandlerStompFactory{})
@@ -115,10 +115,10 @@ func main() {
 		go read(ch)
 		write(n)
 	*/
+	cmdCtx := test.NewCommandsRegistry()
 
-	process(n)
+	test_transport.Register(n.Node, &cmdCtx)
+	test_stomp.Register(n, &cmdCtx, true)
 
-	log.Infof("Frames received: [%d]", frameReceived)
-
-	time.Sleep(time.Second * 5)
+	test.Process(&cmdCtx, globalOpt.FileWithCommands)
 }

@@ -3,27 +3,27 @@ package main
 import _ "github.com/KristinaEtc/slflog"
 
 import (
-	"bufio"
 	"os"
-	"strings"
 
 	"github.com/KristinaEtc/bdmq/handlers"
+	test "github.com/KristinaEtc/bdmq/test-commands"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
-
 	"github.com/ventu-io/slf"
 )
 
-var log = slf.WithContext("main.go")
+var log = slf.WithContext("test-transport")
 
 // Global is a struct with all configs; used with github.com/KristinaEtc/config package.
 type Global struct {
-	MachineID string
-	Links     []transport.LinkDescFromJSON
+	MachineID        string
+	Links            []transport.LinkDescFromJSON
+	FileWithCommands string
 }
 
 var globalOpt = Global{
-	MachineID: "kristina-note-test",
+	MachineID:        "kristina-note-test",
+	FileWithCommands: "commands.cmd",
 	Links: []transport.LinkDescFromJSON{
 		transport.LinkDescFromJSON{
 			LinkID:  "ID1",
@@ -37,7 +37,7 @@ var globalOpt = Global{
 
 func main() {
 
-	config.ReadGlobalConfig(&globalOpt, "main.go")
+	config.ReadGlobalConfig(&globalOpt, "test-transport")
 	log.Debugf("config=%v", globalOpt.Links)
 
 	transport.RegisterHandlerFactory("echoHandler", handlers.HandlerEchoFactory{})
@@ -54,16 +54,20 @@ func main() {
 	if err != nil {
 		log.Errorf("Run error: %s", err.Error())
 	}
-
-	scanner := bufio.NewScanner(os.Stdin)
-	for scanner.Scan() {
-		if strings.ToLower(scanner.Text()) == "q" {
-			n.Stop()
-			//time.Sleep(time.Second * 5)
-			break
-			//os.Exit(0)
-		} else {
-			n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
+	/*
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			if strings.ToLower(scanner.Text()) == "q" {
+				n.Stop()
+				//time.Sleep(time.Second * 5)
+				break
+				//os.Exit(0)
+			} else {
+				n.SendMessage("notProcessedLinkID", scanner.Text()+"\n")
+			}
 		}
-	}
+	*/
+
+	test.AddCommandProcessor()
+	test.Process(n, globalOpt.FileWithCommands, false)
 }

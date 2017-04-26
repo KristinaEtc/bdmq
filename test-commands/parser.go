@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"bufio"
@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KristinaEtc/bdmq/stomp"
+	"github.com/ventu-io/slf"
 )
 
-type processorFunc func(string, *stomp.NodeStomp) error
+var log = slf.WithContext("test-parser")
 
 func parseCommand(commandDeclaration string) (command, signature string, err error) {
 
@@ -26,21 +26,13 @@ func parseCommand(commandDeclaration string) (command, signature string, err err
 	return
 }
 
-var commands = map[string]processorFunc{
-	"subscribe":    subscribeProcesser,
-	"unsubscribe":  unsubscribeProcesser,
-	"sendMessage":  sendMessageProcesser,
-	"sendFrame":    sendFrameProcesser,
-	"receiveFrame": receiveFrameProcesser,
-	"sleep":        sleepProcesser,
-	"dump":         dumpProcesser,
-}
-
-func process(n *stomp.NodeStomp) error {
+// Process implements all test logic: parse line by line commands from file
+// and call corresponding functions
+func Process(exec CommandExecutor, fileWithCommands string) error {
 
 	// openning file with commands and reading from it
 
-	fd, err := os.Open(globalOpt.FileWithCommands)
+	fd, err := os.Open(fileWithCommands)
 	if err != nil {
 		log.Errorf("Error: [%s]", err.Error())
 		return err
@@ -62,11 +54,11 @@ func process(n *stomp.NodeStomp) error {
 
 		commandDeclaration = scanner.Text()
 		if err := scanner.Err(); err != nil {
-			log.Errorf("globalOpt.FileWithCommands: %s", err.Error())
+			log.Errorf("file with commands: %s", err.Error())
 			return err
 		}
 		if len(commandDeclaration) == 0 {
-			log.Errorf("Empty line in File with commands=%s; ignored", globalOpt.FileWithCommands)
+			log.Errorf("Empty line in File with commands=%s; ignored", fileWithCommands)
 			continue
 		}
 
@@ -79,20 +71,11 @@ func process(n *stomp.NodeStomp) error {
 		}
 
 		// finding this command in known commands and run correspoding processer
-
-		var function processorFunc
-		var ok bool
-
-		if function, ok = commands[cmd]; !ok {
-			log.Errorf("Command [%s] from command file [%s] not found", cmd, globalOpt.FileWithCommands)
-			continue
-		}
-		err = function(signature, n)
+		err = exec.execute(cmd, signature)
 		if err != nil {
-			log.Errorf("%s", err.Error())
+			log.Errorf("Execute: %s [%s]", err.Error(), cmd)
 			os.Exit(1)
 		}
-
 	}
 
 	return nil
