@@ -5,6 +5,6 @@ tests/*/*.cmd
 tests/*/server
 tests/*/client
 
-tests/test-transport/test-transport
+tests/test-transport/transport
 tests/test-stomp/stomp
 

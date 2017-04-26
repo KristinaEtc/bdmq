@@ -3,6 +3,7 @@ package test
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -21,6 +22,10 @@ func parseCommand(commandDeclaration string) (command, signature string, err err
 	if len(splitted) < 2 {
 		return "", "", errors.New("Wrong command declaration [)]")
 	}
+	if command[:2] == "//" {
+		return "", "", fmt.Errorf("commented command [%s]", commandDeclaration)
+	}
+
 	signature = splitted[1][:len(splitted[1])-1]
 
 	return

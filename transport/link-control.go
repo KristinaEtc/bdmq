@@ -87,6 +87,14 @@ func (lC *LinkControl) NotifyErrorRead(err error) {
 	})
 }
 
+// NotifyErrorHandler sends command to notify an error where handler not fount
+func (lC *LinkControl) NotifyErrorHandler(err error) {
+	lC.sendCommand(cmdContrlLink{
+		cmd: errorControlLinkHandler,
+		err: err.Error(),
+	})
+}
+
 /*
 func (lC *LinkControlClient) NotifyErrorFromActive(err error) {
 	lC.commandCh <- cmdContrlLink{
@@ -269,6 +277,11 @@ func (lC *LinkControl) WaitCommandClient(conn io.Closer) (isExiting bool) {
 			conn.Close()
 			return false
 		}
+		if command.cmd == errorControlLinkHandler {
+			lC.log.Errorf("Error: %s", command.err)
+			conn.Close()
+			return true
+		}
 		lC.log.Warnf("linkControl: received something weird %d", command.cmd)
 		conn.Close()
 		return false
@@ -293,9 +306,9 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 
 	hFactory, ok := handlers[handlerName]
 	if !ok {
-		linkActive.log.Errorf("initLinkActive: handler %s not found, closing connection", handlerName)
+		linkActive.log.Errorf("initLinkActive: handler [%s] not found, closing connection", handlerName)
 		conn.Close()
-		lC.NotifyErrorRead(fmt.Errorf("initLinkActive: handler %s not found, closing connection", handlerName))
+		lC.NotifyErrorHandler(fmt.Errorf("initLinkActive: handler [%s] not found, closing connection", handlerName))
 		return
 	}
 

@@ -1,12 +1,14 @@
 package main
 
-import _ "github.com/KristinaEtc/slflog"
-
 import (
 	"os"
 
 	"github.com/KristinaEtc/bdmq/handlers"
+	_ "github.com/KristinaEtc/slflog"
+
 	test "github.com/KristinaEtc/bdmq/test-commands"
+
+	test_transport "github.com/KristinaEtc/bdmq/test-commands/transport"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"
 	"github.com/ventu-io/slf"
@@ -42,6 +44,7 @@ func main() {
 
 	transport.RegisterHandlerFactory("echoHandler", handlers.HandlerEchoFactory{})
 	transport.RegisterHandlerFactory("testHandler", handlers.HandlerTestFactory{})
+	transport.RegisterHandlerFactory("helloHandler", handlers.HandlerHelloWorldFactory{})
 
 	n := transport.NewNode()
 	err := n.InitLinkDesc(globalOpt.Links)
@@ -68,6 +71,8 @@ func main() {
 		}
 	*/
 
-	test.AddCommandProcessor()
-	test.Process(n, globalOpt.FileWithCommands, false)
+	cmdCtx := test.NewCommandsRegistry()
+	test_transport.Register(n, &cmdCtx)
+
+	test.Process(&cmdCtx, globalOpt.FileWithCommands)
 }
