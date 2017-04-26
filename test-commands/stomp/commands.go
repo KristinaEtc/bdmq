@@ -165,7 +165,7 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 
 func read(ch chan frame.Frame, prescriptiveFrame frame.Frame, showInput bool) error {
 
-	timeout := time.NewTicker(time.Second * 10)
+	timeout := time.NewTicker(time.Second * 15)
 
 	log.Debug("read")
 
@@ -174,9 +174,9 @@ func read(ch chan frame.Frame, prescriptiveFrame frame.Frame, showInput bool) er
 		case fr := <-ch:
 
 			frameReceived++
-			//if showInput {
-			log.Infof("Received: %s", fr.Dump())
-			//}
+			if showInput {
+				log.Infof("Received: %s", fr.Dump())
+			}
 			if frame.CompareFrames(prescriptiveFrame, fr) != true {
 				return errors.New("Frames not equal")
 			}

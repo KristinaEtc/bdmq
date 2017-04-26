@@ -1,7 +1,6 @@
 package main
 
 import _ "github.com/KristinaEtc/slflog"
-
 import (
 	"io"
 	"os"
@@ -77,10 +76,11 @@ func write(n *stomp.NodeStomp) error {
 
 		n.SendFrame("test-topic", *frame)
 	}
-
 }
 
 func main() {
+
+	log.Debug("\n\n\n\n\n")
 
 	config.ReadGlobalConfig(&globalOpt, "test-transport")
 	log.Debugf("config=%+v", globalOpt.Links)
@@ -107,23 +107,12 @@ func main() {
 			os.Exit(1)
 		}
 	}()
-	/*
-		ch, err := n.Subscribe("test-topic")
-		if err != nil {
-			log.Errorf("Could not subscribe: %s", err.Error())
-			return
-		}
 
-		time.Sleep(time.Second * 5)
-
-
-		go read(ch)
-		write(n)
-	*/
 	cmdCtx := test.NewCommandsRegistry()
 
 	//	test_transport.Register(n.Node, &cmdCtx)
-	test_stomp.Register(n, &cmdCtx, true)
+	test_stomp.Register(n, &cmdCtx, globalOpt.ShowFrames)
 
 	test.Process(&cmdCtx, globalOpt.FileWithCommands)
+
 }

@@ -1,9 +1,9 @@
 #!/bin/bash
 
 function run {
-        
+
         pids=""
-        
+
         #process_name1=""
         #process_name2=""
 
@@ -34,9 +34,9 @@ function run {
 }
 
 #set -x
-if !(go build stomp.go); then 
+if !(go build stomp.go); then
         echo "building failed"
 else
-        echo "starting" 
+        echo "starting"
         run
 fi

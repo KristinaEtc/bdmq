@@ -58,10 +58,54 @@ func processFrame(topic string, frame *frame.Frame) error {
 func (h *HandlerStomp) receiveFrame(linkActiveID string, frame frame.Frame) {
 	//h.log.Debugf("func ReceiveFrame()")
 
-	h.node.CommandCh <- &CommandReceiveFrameStomp{
-		transport.NodeCommand{Cmd: stompReceiveFrameCommand},
-		frame,
-		linkActiveID,
+	switch frame.Command {
+	case "CONNECT":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+
+	case "SEND":
+		{
+			h.log.Infof("[%s]/[%s]", frame.Command, frame.Header)
+			h.node.CommandCh <- &CommandReceiveFrameStomp{
+				transport.NodeCommand{Cmd: stompReceiveFrameCommand},
+				frame,
+				linkActiveID,
+			}
+		}
+	case "SUBSCRIBE":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "UNSUBSCRIBE":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "BEGIN":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "COMMIT":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "ABORT":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "ACK":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "NACK":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+	case "DISCONNECT":
+		{
+			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
+		}
+
 	}
 }
 
