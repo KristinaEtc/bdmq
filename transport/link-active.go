@@ -103,6 +103,7 @@ func (lA *LinkActive) Write(msg []byte) (int, error) {
 // It is an implementation of method of interface LinkWriter.
 func (lA *LinkActive) Read() {
 
+	lA.log.Debug("LinkActive Read()")
 	/*
 		err := lA.FrameProcessor.Read()
 		if err != nil {
@@ -113,7 +114,7 @@ func (lA *LinkActive) Read() {
 	err := lA.GetHandler().OnRead(lA.conn)
 	if err != nil {
 		lA.linkControl.NotifyErrorRead(err)
-		lA.log.Warn("exiting")
+		lA.log.Warn("LinkActive Read(): exiting")
 	}
 
 	//lA.Handler.OnRead(message)

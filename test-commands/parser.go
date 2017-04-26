@@ -36,7 +36,6 @@ func parseCommand(commandDeclaration string) (command, signature string, err err
 func Process(exec CommandExecutor, fileWithCommands string) error {
 
 	// openning file with commands and reading from it
-
 	fd, err := os.Open(fileWithCommands)
 	if err != nil {
 		log.Errorf("Error: [%s]", err.Error())
@@ -79,7 +78,7 @@ func Process(exec CommandExecutor, fileWithCommands string) error {
 		err = exec.execute(cmd, signature)
 		if err != nil {
 			log.Errorf("Execute: %s [%s]", err.Error(), cmd)
-			os.Exit(1)
+			//os.Exit(1)
 		}
 	}
 

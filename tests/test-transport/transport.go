@@ -1,10 +1,10 @@
 package main
 
+import _ "github.com/KristinaEtc/slflog"
 import (
 	"os"
 
 	"github.com/KristinaEtc/bdmq/handlers"
-	_ "github.com/KristinaEtc/slflog"
 
 	test "github.com/KristinaEtc/bdmq/test-commands"
 
