@@ -14,8 +14,6 @@ import (
 	"github.com/ventu-io/slf"
 )
 
-var frameReceived int
-
 var log = slf.WithContext("test-stomp")
 
 func stringParam(str string) string {
@@ -163,7 +161,7 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 	}
 }
 
-func read(ch chan frame.Frame, prescriptiveFrame frame.Frame, showInput bool) error {
+func read(ch chan frame.Frame, prescriptiveFrame frame.Frame, showInput bool, frameReceived int) error {
 
 	timeout := time.NewTicker(time.Second * 15)
 
@@ -235,7 +233,7 @@ func receiveFrameProcesser(n *stomp.NodeStomp, showInput bool) test.ProcessorFun
 				headersFull...,
 			)
 
-			err := read(ch, *fr, showInput)
+			err := read(ch, *fr, showInput, frameReceived)
 			if err != nil {
 				log.Errorf("FramesReceived=[%d]", frameReceived)
 				return err

@@ -18,7 +18,7 @@ var r1 = rand.New(s1)
 // in order to eliminate the dependency on the type LinkActive in other packages
 // where Handlers initialized.
 type LinkWriter interface {
-	Mode() int                 // returns Mode of a link; must be server of client
+	Mode() string              // returns Mode of a link; must be server or client
 	Close()                    // close Link
 	ID() string                // returns Link ID
 	Conn() net.Conn            // returns conn of Link

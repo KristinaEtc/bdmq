@@ -1,13 +1,15 @@
 package main
 
-import _ "github.com/KristinaEtc/slflog"
 import (
 	"io"
 	"os"
 
 	"github.com/KristinaEtc/bdmq/frame"
+	_ "github.com/KristinaEtc/slflog"
+
 	"github.com/KristinaEtc/bdmq/stomp"
 	test "github.com/KristinaEtc/bdmq/test-commands"
+
 	test_stomp "github.com/KristinaEtc/bdmq/test-commands/stomp"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/KristinaEtc/config"

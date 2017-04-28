@@ -29,7 +29,7 @@ func (lA *LinkActive) Conn() net.Conn {
 }
 
 // Mode returns mode of LinkActive (server or client)
-func (lA *LinkActive) Mode() int {
+func (lA *LinkActive) Mode() string {
 	return lA.linkControl.Mode()
 }
 

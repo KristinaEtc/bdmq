@@ -2,11 +2,16 @@ package stomp
 
 import (
 	"io"
+	"time"
 
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/ventu-io/slf"
 )
+
+// DefaultHeartBeatError is a default time span to add to read/write heart-beat timeouts
+// to avoid premature disconnections due to network latency.
+const DefaultHeartBeatError = 5 * time.Second
 
 // HandlerStompFactory is a factory of HandlerStomp
 type HandlerStompFactory struct {
@@ -33,7 +38,12 @@ type HandlerStomp struct {
 	node   *transport.Node
 	Writer *frame.Writer
 	log    slf.Logger
-	//	topicChs map[string]*chan transport.Frame
+
+	options *connOptions
+
+	version      Version
+	readTimeout  time.Duration
+	writeTimeout time.Duration
 }
 
 // processFrame add frame for indicated topic
@@ -105,7 +115,6 @@ func (h *HandlerStomp) receiveFrame(linkActiveID string, frame frame.Frame) {
 		{
 			h.log.Infof("[%s]/[%s]: not implemented", frame.Command, frame.Header)
 		}
-
 	}
 }
 
@@ -163,9 +172,38 @@ func (h *HandlerStomp) registerStompHandler() {
 	}
 }
 
+func (h *HandlerStomp) sendConnectFrame() {
+
+}
+
+func (h *HandlerStomp) recieveConnectFrame() {
+	//recieving
+}
+
+func (h *HandlerStomp) sendConnectedFrame() {
+	//sending
+}
+
+func (h *HandlerStomp) recieveConnectedFrame() {
+	//recieving
+}
+
 // OnConnect implements OnConnect method from Heandler interface
 func (h *HandlerStomp) OnConnect() error {
 	h.log.Debugf("OnConnect %d", h.link.Mode())
+
+	switch h.link.Mode() {
+	case "client":
+		{
+			h.sendConnectFrame()
+			h.recieveConnectedFrame()
+		}
+	case "server":
+		{
+			h.recieveConnectFrame()
+			h.sendConnectedFrame()
+		}
+	}
 	h.registerStompHandler()
 	return nil
 }
