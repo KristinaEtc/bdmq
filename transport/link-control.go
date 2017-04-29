@@ -23,7 +23,7 @@ type LinkControl struct {
 
 // Mode returnes a type of LinkControl: server or client.
 func (lC *LinkControl) Mode() string {
-	if lC.mode == 1 {
+	if lC.mode == ServerMode {
 		return "server"
 	}
 	return "client"

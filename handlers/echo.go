@@ -54,9 +54,9 @@ func (h *HandlerEcho) OnRead(rd io.Reader) error {
 }
 
 // OnConnect implements OnConnect method from transport.Handler interface
-func (h *HandlerEcho) OnConnect() error {
+func (h *HandlerEcho) OnConnect(rd io.Reader) error {
 
-	log.WithField("ID=", h.link.ID()).Debugf("OnConnect %d", h.link.Mode())
+	log.WithField("ID=", h.link.ID()).Debugf("OnConnect %s", h.link.Mode())
 
 	cnt := 65536
 	tmp := make([]byte, cnt)
@@ -64,7 +64,7 @@ func (h *HandlerEcho) OnConnect() error {
 		tmp[i] = byte(48 + (i & 7))
 	}
 	tmp[cnt-1] = byte('\n')
-	if h.link.Mode() == transport.ClientMode {
+	if h.link.Mode() == "client" {
 		//h.OnWrite([]byte("0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF\n"))
 		h.OnWrite(tmp)
 	}

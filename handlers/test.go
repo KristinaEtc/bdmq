@@ -50,7 +50,7 @@ func (h *HandlerTest) OnRead(rd io.Reader) error {
 }
 
 // OnConnect implements OnConnect method from transport.Handler interface
-func (h *HandlerTest) OnConnect() error {
+func (h *HandlerTest) OnConnect(rd io.Reader) error {
 	log.WithField("ID=", h.link.ID()).Debugf("OnConnect")
 	return nil
 }

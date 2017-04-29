@@ -305,7 +305,7 @@ func (h *HandlerStomp) OnConnect(rd io.Reader) error {
 				return err
 			}
 
-			log.Debugf("heartBeat=[%d]/[%d]", cx/int(time.Millisecond), cy/int(time.Millisecond))
+			log.Debugf("heartBeat=[%d]/[%d]", cx/int(time.Microsecond), cy/int(time.Microsecond))
 
 			response := frame.New(frame.CONNECTED,
 				frame.Version, string(h.version),

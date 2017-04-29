@@ -49,7 +49,7 @@ func (h *HandlerHelloWorld) OnRead(rd io.Reader) error {
 }
 
 // OnConnect implements OnConnect method from transport.Handler interface
-func (h *HandlerHelloWorld) OnConnect() error {
+func (h *HandlerHelloWorld) OnConnect(rd io.Reader) error {
 	log.WithField("ID=", h.link.ID()).Debugf("OnConnect")
 	// TODO: to add channel where will be sended a kill signal
 	ticker := time.NewTicker(time.Second * 2)
