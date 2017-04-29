@@ -11,7 +11,7 @@ import (
 type ProcessorFunc func(string) error
 
 func sleep(s string) error {
-	log.Info("sleep")
+	log.Infof("sleep(%s)", s)
 	t, err := strconv.Atoi(s)
 	if err != nil {
 		return fmt.Errorf("sleep: %s ", err.Error())

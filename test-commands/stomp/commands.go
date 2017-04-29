@@ -61,7 +61,7 @@ func subscribeProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 	return func(signature string) error {
 
 		log.Debugf("[command] subscribe=[%s]", signature)
-
+		fmt.Printf("!!!!!")
 		topic := stringParam(signature)
 
 		_, err := n.Subscribe(topic)

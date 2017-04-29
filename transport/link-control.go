@@ -23,7 +23,7 @@ type LinkControl struct {
 
 // Mode returnes a type of LinkControl: server or client.
 func (lC *LinkControl) Mode() string {
-	if lC.mode == 0 {
+	if lC.mode == 1 {
 		return "server"
 	}
 	return "client"
@@ -323,7 +323,8 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	node.RegisterLinkActive(&linkActive)
 
 	go linkActive.WaitCommand(conn)
-	h.OnConnect()
+	h.OnConnect(linkActive.conn)
+	log.Warn("OnConnect done")
 	linkActive.Read()
 	//linkActive.handler.OnDisconnect()
 
