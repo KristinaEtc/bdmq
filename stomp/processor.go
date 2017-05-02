@@ -88,7 +88,6 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 			cmdTopic.sub <- res
 
 			return true, false
-
 		}
 
 	/*

@@ -19,7 +19,7 @@ type Handler interface {
 	OnRead(io.Reader) error    // read method
 	OnConnect(io.Reader) error // connect method
 	//OnWrite([]byte)   // write method
-	OnDisconnect() // disconnect method
+	OnDisconnect() error // disconnect method
 	//Subscribe(string) (*chan Frame, error)
 }
 

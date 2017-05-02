@@ -19,6 +19,14 @@ import (
 
 var log = slf.WithContext("test-stomp")
 
+/*
+// these are the default options that work with RabbitMQ
+var options []func(*stomp.Conn) error = []func(*stomp.Conn) error{
+	stomp.ConnOpt.Login("guest", "guest"),
+	stomp.ConnOpt.Host("/"),
+}
+*/
+
 // Global used for all configs.
 type Global struct {
 	MachineID        string
@@ -117,5 +125,4 @@ func main() {
 	test_stomp.Register(n, &cmdCtx, globalOpt.ShowFrames)
 
 	test.Process(&cmdCtx, globalOpt.FileWithCommands)
-
 }

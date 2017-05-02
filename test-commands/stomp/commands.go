@@ -38,14 +38,20 @@ func boolParam(str string) (bool, error) {
 	return b, nil
 }
 
+/*
 func stopProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 
 	return func(signature string) error {
 		log.Debugf("[command] stop=[%s]", signature)
-		n.Stop(5)
+		err := n.Stop(5)
+		if err != nil {
+			log.Error(err.Error())
+			return err
+		}
 		return nil
 	}
 }
+*/
 
 func dumpProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 
@@ -251,5 +257,4 @@ func Register(node *stomp.NodeStomp, cmdRegistrar test.CommandRegistrar, showInp
 	cmdRegistrar.RegisterCommand("sendFrame", sendFrameProcesser(node))
 	cmdRegistrar.RegisterCommand("unsubscribe", unsubscribeProcesser(node))
 	cmdRegistrar.RegisterCommand("dump", dumpProcesser(node))
-	cmdRegistrar.RegisterCommand("stop", stopProcesser(node))
 }

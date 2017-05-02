@@ -323,10 +323,16 @@ func (lC *LinkControl) initLinkActive(conn net.Conn) {
 	node.RegisterLinkActive(&linkActive)
 
 	go linkActive.WaitCommand(conn)
-	h.OnConnect(linkActive.conn)
+	err := h.OnConnect(linkActive.conn)
+	if err != nil {
+		log.Errorf("Connect: %s", err.Error())
+	}
 	log.Warn("OnConnect done")
 	linkActive.Read()
-	//linkActive.handler.OnDisconnect()
+	err = linkActive.handler.OnDisconnect()
+	if err != nil {
+		log.Errorf("Disconnect: %s", err.Error())
+	}
 
 	node.UnregisterLinkActive(&linkActive)
 	linkActive.log.Debug("initLinkActive exiting")
