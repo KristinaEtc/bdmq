@@ -1,6 +1,8 @@
 package stomp
 
 import (
+	"os/exec"
+
 	"github.com/KristinaEtc/bdmq/frame"
 	"github.com/KristinaEtc/bdmq/transport"
 	"github.com/ventu-io/slf"
@@ -38,9 +40,14 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 				lActive := s.Node.LinkActives[subcriptionData.linkActiveID]
 			*/
 			//	log.Debug("Now I'm sending a frame to the 1st handler")
-			for _, h := range s.Node.handlers {
-				h.OnWrite(cmdSendFrame.frame)
-				//break
+			var err error
+			for hKey, h := range s.Node.handlers {
+				err = h.OnWrite(cmdSendFrame.frame)
+				if err != nil {
+					log.Errorf("Cannot wrote frame: %s", err)
+					delete(s.Node.handlers, hKey)
+					break
+				}
 			}
 
 			return true, false
@@ -122,15 +129,19 @@ func (s *ProcessorStomp) ProcessCommand(cmd transport.Command) (known bool, isEx
 	*/
 	case stompRegisterStompHandlerCommand:
 		{
-
 			cmdHandlerRegister, ok := cmd.(*CommandRegisterHandlerStomp)
 			if !ok {
 				log.Errorf("Invalid command type %v", cmd)
 				return false, true
 			}
 
-			s.Node.handlers = append(s.Node.handlers, cmdHandlerRegister.handler)
+			uuid, err := exec.Command("uuidgen").Output()
+			if err != nil {
+				log.Error("Could not create uuid for handler")
+				return true, true
+			}
 
+			s.Node.handlers[string(uuid)] = cmdHandlerRegister.handler
 			return true, false
 		}
 	default:

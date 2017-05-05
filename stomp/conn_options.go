@@ -24,8 +24,8 @@ type connOptions struct {
 func newConnOptions(h *HandlerStomp, opts []func(*HandlerStomp) error) (*connOptions, error) {
 	co := &connOptions{
 		FrameCommand:   frame.CONNECT,
-		ReadTimeout:    time.Minute,
-		WriteTimeout:   time.Minute,
+		ReadTimeout:    time.Second * 1,
+		WriteTimeout:   time.Second * 60,
 		HeartBeatError: DefaultHeartBeatError,
 	}
 

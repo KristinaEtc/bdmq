@@ -124,7 +124,7 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 
 		log.Debugf("[params] sendFrame=[%v]", params)
 
-		if len(params) < 5 {
+		if len(params) < 6 {
 			return errors.New("Must be at least 5 parameters")
 		}
 
@@ -139,11 +139,16 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 			return errors.New("Wrong [num of frames] parameter")
 		}
 
+		pause, err := strconv.Atoi(params[3])
+		if err != nil {
+			return errors.New("Wrong [pause between sending] parameter.")
+		}
+
 		// a creating of headers of frames without last kye headers
 		// he will be added with his number
 
 		var headers = make([]string, 0)
-		for i := 3; i <= len(params)-2; i++ {
+		for i := 4; i <= len(params)-2; i++ {
 			h := stringParam(params[i])
 			headers = append(headers, h)
 		}
@@ -159,7 +164,7 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 				headersFull...,
 			)
 			n.SendFrame(topic, *fr)
-			time.Sleep(time.Millisecond)
+			time.Sleep(time.Second * time.Duration(pause))
 		}
 		//	log.Infof("[%d] frame(s) was sent from [%s]", numOfFrames, topic)
 
@@ -169,7 +174,7 @@ func sendFrameProcesser(n *stomp.NodeStomp) test.ProcessorFunc {
 
 func read(ch chan frame.Frame, prescriptiveFrame frame.Frame, showInput bool, frameReceived int) error {
 
-	timeout := time.NewTicker(time.Second * 15)
+	timeout := time.NewTicker(time.Second * 20)
 
 	log.Debug("read")
 

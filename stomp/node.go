@@ -20,7 +20,7 @@ type Subscription struct {
 type NodeStomp struct {
 	*transport.Node
 	subscriptions map[string]Subscription // groupped by topic
-	handlers      []*HandlerStomp
+	handlers      map[string]*HandlerStomp
 }
 
 // NewNode creates a new NodeStomp object and returns it.
@@ -28,7 +28,7 @@ func NewNode() *NodeStomp {
 
 	n := &NodeStomp{transport.NewNode(),
 		make(map[string]Subscription),
-		make([]*HandlerStomp, 0)}
+		make(map[string]*HandlerStomp, 0)}
 
 	return n
 }

@@ -108,6 +108,7 @@ func getHeartBeat(f *frame.Frame) (cx, cy int, err error) {
 		slice := strings.Split(heartBeat, ",")
 		value1, _ := strconv.ParseUint(slice[0], 10, 32)
 		value2, _ := strconv.ParseUint(slice[1], 10, 32)
+
 		cx = int(value1)
 		cy = int(value2)
 	} else {

@@ -126,27 +126,99 @@ func (h *HandlerStomp) receiveFrame(linkActiveID string, frame frame.Frame) {
 
 // OnRead implements OnRead method from transport.Heandler interface
 func (h *HandlerStomp) OnRead(rd io.Reader) error {
+	h.log.Debugf("OnRead enter: readTimeout=[%s], writeTimeout=[%s]", h.readTimeout, h.writeTimeout)
 
-	h.log.Info("HANDLER ONREAD")
+	var (
+		writeErrorCh, readErrorCh   chan error
+		writeTicker, readTicker     *time.Ticker
+		writeTickerCh, readTickerCh <-chan time.Time
+	)
+
 	reader := frame.NewReader(rd)
 
-	for {
-		fr, err := reader.Read()
-		if err != nil {
-			if err == io.EOF {
-				h.log.Errorf("connection closed: eof")
-			} else {
-				h.log.Errorf("read failed: %s", err.Error())
+	if h.readTimeout > 0 {
+		readTicker = time.NewTicker(h.readTimeout)
+		readTickerCh = readTicker.C
+	}
+
+	if h.writeTimeout > 0 {
+		writeTicker = time.NewTicker(h.writeTimeout)
+		writeTickerCh = writeTicker.C
+	}
+
+	if h.writeTimeout > 0 {
+		writeErrorCh = make(chan error)
+		defer close(writeErrorCh)
+		go func() {
+			select {
+			case _ = <-writeTickerCh:
+				{
+					err := h.Writer.Write(nil)
+					if err != nil {
+						log.Error("Could not write to handler")
+						writeErrorCh <- errors.New("Could not write to handler")
+					}
+				}
 			}
-			return err
+		}()
+	}
+
+	readErrorCh = make(chan error)
+	defer func() {
+		close(readErrorCh)
+		//tickChan.Stop()
+	}()
+
+	go func() {
+		for {
+			fr, err := reader.Read()
+			if err != nil {
+				if err == io.EOF {
+					h.log.Errorf("connection closed: eof")
+				} else {
+					h.log.Errorf("read failed: %s", err.Error())
+				}
+				readErrorCh <- err
+				return
+			}
+			//timer.Lock()
+
+			log.Info("Here")
+			//tickChan = time.NewTicker(time.Second * h.readTimeout)
+
+			//timer.Unlock()
+
+			if fr == nil {
+				h.log.Warn("heartbeat")
+				continue
+			}
+
+			//	h.log.Infof("message= %s", fr.Dump())
+			h.receiveFrame(h.link.ID(), *fr)
 		}
-		if fr == nil {
-			h.log.Infof("heartbeat")
-			continue
+	}()
+
+	for {
+		select {
+		case errRead := <-readErrorCh:
+			log.Errorf("Read error: %s", errRead)
+			return errRead
+		case errWrite := <-writeErrorCh:
+			log.Errorf("Write error: %s", errWrite)
+			return errWrite
+		case t := <-readTickerCh:
+			//timer.Lock()
+			{
+				log.Errorf("Read timeout [%s]", t)
+				return fmt.Errorf("Read timeout [%s]", t)
+			}
+		case t := <-writeErrorCh:
+			{
+				log.Errorf("Write timeout [%s]", t)
+				return fmt.Errorf("Write timeout [%s]", t)
+			}
 		}
 
-		//	h.log.Infof("message= %s", fr.Dump())
-		h.receiveFrame(h.link.ID(), *fr)
 	}
 }
 
@@ -238,8 +310,8 @@ func (h *HandlerStomp) makeConnectedFrame(rd io.Reader, f *frame.Frame) (*frame.
 		return nil, err
 	}
 
-	log.Debugf("heartBeat=[%d]/[%d]", cx/int(time.Microsecond), cy/int(time.Microsecond))
-
+	log.Infof("makeConnectedFrame: cx=%d, cy=%d", cx, cy)
+	log.Infof("heartBeat=[%d]/[%d]", cx/int(time.Microsecond), cy/int(time.Microsecond))
 	response := frame.New(frame.CONNECTED,
 		frame.Version, string(h.version),
 		frame.Server, "stompd/x.y.z", // TODO: get version
@@ -276,9 +348,12 @@ func (h *HandlerStomp) parseConnectedFrame(response *frame.Frame, options *connO
 			return fmt.Errorf("heartbit=[%s]: %s", heartBeat, err.Error())
 		}
 
+		//h.readTimeout = readTimeout
+		//h.writeTimeout = writeTimeout
+
+		log.Infof("parseConnectedFrame: w=%s, r=%s", writeTimeout, readTimeout)
 		h.readTimeout = readTimeout
 		h.writeTimeout = writeTimeout
-
 		if h.readTimeout > 0 {
 			// Add time to the read timeout to account for time
 			// delay in other station transmitting timeout
@@ -290,6 +365,8 @@ func (h *HandlerStomp) parseConnectedFrame(response *frame.Frame, options *connO
 			h.writeTimeout -= options.HeartBeatError
 		}
 	}
+
+	log.Infof("parseConnectedFrame withAdding: w=%s, r=%s", h.writeTimeout, h.readTimeout)
 	return nil
 }
 
@@ -305,6 +382,8 @@ func (h *HandlerStomp) sendConnectFrame(rd io.Reader, opts []func(*HandlerStomp)
 	if options.Host == "" {
 		options.Host = "default"
 	}
+
+	log.Infof("sendConnectFrame: w=%s, r=%s", options.WriteTimeout, options.ReadTimeout)
 
 	connectFrame, err := options.NewFrame()
 	if err != nil {
@@ -328,28 +407,29 @@ func (h *HandlerStomp) OnConnect(rd io.Reader) error {
 	case "client":
 		{
 			log.Warn("CLIENT tryin CONNECT")
-
 			var opts []func(h *HandlerStomp) error
 
 			options, err := h.sendConnectFrame(rd, opts)
 			if err != nil {
+				log.Error(err.Error())
 				return err
 			}
 
 			response, err := h.readFrame("CONNECTED", rd)
 			if err != nil {
+				log.Error(err.Error())
 				return err
 			}
 
 			err = h.parseConnectedFrame(response, options)
 			if err != nil {
+				log.Error(err.Error())
 				return err
 			}
 		}
 	case "server":
 		{
 			log.Warn("SERVER tryin CONNECTED")
-
 			// waiting clien request with CONNECTED frame
 
 			f, err := h.readFrame("CONNECT", rd)
@@ -377,12 +457,16 @@ func (h *HandlerStomp) OnConnect(rd io.Reader) error {
 }
 
 // OnWrite implements OnWrite method from transport.Heandler interface
-func (h *HandlerStomp) OnWrite(frame frame.Frame) {
+func (h *HandlerStomp) OnWrite(frame frame.Frame) error {
 
 	//h.log.Debug("OnWrite")
-	h.Writer.Write(&frame)
+	err := h.Writer.Write(&frame)
+	if err != nil {
+		log.Error("Cannot write to handler")
+		return fmt.Errorf("Cannot write to handler: %s", err.Error())
+	}
 	//h.log.Debug("OnWrite exit")
-	return
+	return nil
 }
 
 // OnDisconnect implements OnDisconnect method from transport.Heandler interface

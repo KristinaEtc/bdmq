@@ -2,8 +2,8 @@ package transport
 
 // Modes of links
 const (
-	ServerMode int = iota
-	ClientMode
+	ClientMode int = iota
+	ServerMode
 )
 
 //CommandID is a type of commands. Wrappes int.
